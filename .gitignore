@@ -1,0 +1,71 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rtifacts/
+[Pp]ublish/
+*.binlog
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+.vscode/*
+!.vscode/extensions.json
+
+# Test results and coverage
+[Tt]est[Rr]esults/
+*.trx
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+*.lcov
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+!**/packages/build/
+.nuget/
+
+# Secrets and local configuration (never commit)
+*.pfx
+*.snk
+*.pem
+*.key
+.env
+.env.*
+secrets.json
+appsettings.*.local.json
+appsettings.Development.json
+settings.local.json
+
+# Runtime data written by the application (logs, caches, databases)
+*.log
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+
+# Model weights and large binaries (licensed third-party assets must not be committed)
+*.onnx
+*.bin
+*.pt
+*.pth
+*.safetensors
+*.gguf
+*.traineddata
+models/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
