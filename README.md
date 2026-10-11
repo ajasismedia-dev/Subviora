@@ -10,9 +10,10 @@ yerel bir altyazı katmanıyla gösterir.
 üzerinden dağıtım.
 
 > [!IMPORTANT]
-> **Geliştirme durumu: AG-01 — temel altyapı.**
-> Bu sürüm yalnızca uygulamanın iskeletini içerir. Ekran yakalama, metin tanıma (OCR), Akıllı Arayüz
-> Algılama, çeviri ve altyazı katmanı **henüz uygulanmadı**. Uygulama şu anda oyun çevirisi yapmaz.
+> **Geliştirme durumu: AG-02 — Ekran Yakalama ve OCR Değerlendirmesi.**
+> Bu sürümde çalışan oyun pencerelerinin güvenli tespiti, Windows Graphics Capture (WGC) ve Win32 BitBlt
+> ile ekran yakalama, OCR motoru mimarisi (Windows OCR, Tesseract 5.2, PaddleOCR değerlendirmesi) ve
+> karşılaştırmalı test (benchmark) sistemi uygulanmıştır. Çeviri motoru AG-03 aşamasında entegre edilecektir.
 
 ## Bu sürümde neler var
 
@@ -23,14 +24,23 @@ yerel bir altyazı katmanıyla gösterir.
 | Yapılandırma yükleme ve doğrulama | ✅ Çalışıyor |
 | Yapılandırılmış günlük kaydı (JSON, dönen dosyalar) | ✅ Çalışıyor |
 | Bildirim alanı (tepsi) simgesi | ✅ Çalışıyor |
-| Oyun profili şeması (v1), yükleme, doğrulama, kullanıcı geçersiz kılmaları | ✅ Çalışıyor |
-| GTA V Hikaye Modu örnek profili | ⚠️ Kalibre edilmemiş örnek |
-| Modül sözleşmeleri (yakalama, OCR, sınıflandırma, çeviri, katman, profil) | ✅ Yalnızca arayüzler |
-| Çalışan oyunun algılanması | ❌ Uygulanmadı |
-| Ekran yakalama (Windows Graphics Capture) | ❌ Uygulanmadı |
-| Metin tanıma (OCR) ve Akıllı Arayüz Algılama | ❌ Uygulanmadı |
-| Çevrimdışı / çevrimiçi çeviri | ❌ Uygulanmadı |
-| Altyazı katmanı (Win32 + Direct2D/DirectWrite) | ❌ Uygulanmadı |
+| Oyun profili şeması (v1), katmanlı geçersiz kılma, Evrensel Mod (Universal) | ✅ Çalışıyor |
+| GTA V Hikaye Modu profil eşleştirme | ✅ Çalışıyor |
+| Windows oyun ve pencere keşif servisi (Win32, bellek/enjeksiyon yok) | ✅ Çalışıyor |
+| Windows Graphics Capture (WGC) ekran yakalama (DPI ve yeniden boyutlandırma uyumlu) | ✅ Çalışıyor |
+| Win32 GDI / BitBlt ekran yakalama yedek sağlayıcısı | ✅ Çalışıyor |
+| Sınırlı (bounded) yakalama boru hattı ve bayat kare atma (frame dropping) | ✅ Çalışıyor |
+| Yakalama ve OCR telemetrisi (FPS, çözünürlük, gecikme, bellek, kare atma) | ✅ Çalışıyor |
+| İsteğe bağlı yerel teşhis ekran görüntüsü kaydetme | ✅ Çalışıyor |
+| Değiştirilebilir OCR motoru mimarisi (`IOcrProvider`) | ✅ Çalışıyor |
+| Windows Media OCR (WinRT, yerleşik, 0 MB, SAC uyumlu) | ✅ Çalışıyor |
+| Tesseract 5.2 OCR sağlayıcısı (Apache-2.0, SAC uyumlu yerel x64 ikililer) | ✅ Çalışıyor |
+| PaddleOCR karşılaştırmalı değerlendirme adaptörü ve belgelendirmesi | ✅ Çalışıyor |
+| OCR Benchmark Test Koşucusu (CER, WER, Bounding Box IoU, P50/P95 gecikme) | ✅ Çalışıyor |
+| Masaüstü Yakalama ve OCR Tanılama / Önizleme ekranı | ✅ Çalışıyor |
+| Akıllı Arayüz Algılama (Smart UI Detection) | ❌ Gelecek aşama |
+| Çevrimdışı / çevrimiçi Türkçe çeviri | ❌ AG-03 aşamasında planlandı |
+| Doğrudan oyun içi altyazı katmanı (Win32 + Direct2D/DirectWrite) | ❌ AG-04/05 aşamasında planlandı |
 
 ## Sistem gereksinimleri
 

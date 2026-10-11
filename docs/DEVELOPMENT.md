@@ -112,7 +112,22 @@ To add a built-in profile:
 4. Run the tests; `FileSystemGameProfileProviderTests` loads every shipped profile and fails on any
    validation issue.
 
-A user profile with the same `gameId` replaces the built-in one as a whole (no field-level merging).
+User profiles in `%LOCALAPPDATA%\Subviora\Profiles\*.json` are layered overrides: built-in profiles
+remain immutable baselines while user files specify only customized fields and region operations (`replace`,
+`upsert`, `remove`).
+
+## Screen Capture and OCR Diagnostics
+
+AG-02 adds diagnostic tooling accessible directly from the Subviora desktop UI under the
+**Yakalama & OCR** navigation tab:
+
+- **Window Selection:** Enumerate and attach to open game windows (automatically highlights GTA V if detected).
+- **Interactive Capture:** Capture individual frames on demand or run the continuous background pipeline.
+- **Diagnostic Screenshots:** Save full-resolution frames locally to `%LOCALAPPDATA%\Subviora\Screenshots`
+  only when explicitly triggered via the "Ekran Görüntüsü Kaydet" button.
+- **OCR Engine Testing:** Switch between Windows OCR and Tesseract 5.2 on live or test frames.
+- **Benchmark Suite:** Run automated evaluations directly from the UI or via unit tests (`BenchmarkCalculationTests`)
+  to compute Character Error Rate (CER), Word Error Rate (WER), Bounding Box IoU, and latency percentiles.
 
 ## Code conventions
 

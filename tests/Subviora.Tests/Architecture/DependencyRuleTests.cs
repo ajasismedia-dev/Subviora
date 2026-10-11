@@ -39,4 +39,24 @@ public sealed class DependencyRuleTests
         Assert.DoesNotContain("Subviora.GameProfiles", references);
         Assert.DoesNotContain("Subviora.Desktop", references);
     }
+
+    [Fact]
+    public void Capture_DependsOnCoreButNotDesktopOrTranslation()
+    {
+        var references = ReferencedAssemblyNames(typeof(Subviora.Capture.Pipeline.CaptureProcessingPipeline).Assembly);
+
+        Assert.Contains("Subviora.Core", references);
+        Assert.DoesNotContain("Subviora.Desktop", references);
+        Assert.DoesNotContain("Subviora.Translation", references);
+    }
+
+    [Fact]
+    public void Vision_DependsOnCoreButNotDesktopOrTranslation()
+    {
+        var references = ReferencedAssemblyNames(typeof(Subviora.Vision.Benchmark.OcrBenchmarkRunner).Assembly);
+
+        Assert.Contains("Subviora.Core", references);
+        Assert.DoesNotContain("Subviora.Desktop", references);
+        Assert.DoesNotContain("Subviora.Translation", references);
+    }
 }

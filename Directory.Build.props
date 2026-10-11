@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
   <!-- Shared build settings for every project in the Subviora solution. -->
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
@@ -17,8 +17,8 @@
     <Product>Subviora</Product>
     <Company>Subviora</Company>
     <Copyright>Copyright Â© Subviora. All rights reserved.</Copyright>
-    <Version>0.1.1</Version>
-    <InformationalVersion>0.1.1-ag01.1</InformationalVersion>
+    <Version>0.2.0</Version>
+    <InformationalVersion>0.2.0-ag02</InformationalVersion>
     <NeutralLanguage>tr-TR</NeutralLanguage>
   </PropertyGroup>
 

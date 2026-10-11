@@ -247,3 +247,49 @@ fixes) to be masked entirely by stale user profiles.
 - Region coordinates in Universal Mode default to common lower-third subtitle placements with uncalibrated
   status.
 
+## ADR-019: Windows Graphics Capture (WGC) with Win32 BitBlt Fallback
+
+**Status:** Accepted (AG-02)
+
+**Context:** Subviora requires reliable, low-latency screen frame acquisition from game windows without
+accessing game process memory, injecting DLLs, or triggering anti-cheat alerts. Games run in Windowed,
+Borderless Windowed, and Exclusive Fullscreen modes.
+
+**Decision:**
+- Use `WindowsGraphicsCaptureProvider` (`Windows.Graphics.Capture.GraphicsCaptureItem`) as the primary
+  capture provider. It leverages the Desktop Window Manager (DWM) composition pipeline via Direct3D 11
+  and `Direct3D11CaptureFramePool`.
+- WGC handles high-DPI scaling, window resizing, and occlusion cleanly without window tear.
+- Provide `Win32BitBltCaptureProvider` as an automatic fallback when WGC or D3D11 hardware surfaces are
+  unavailable (e.g. headless CI environments, RDP sessions, or non-D3D apps).
+- Capture pipeline: `CaptureProcessingPipeline` implements a single-slot bounded frame queue that drops stale
+  frames when OCR is slower than screen acquisition, ensuring zero latency accumulation.
+- Limitations: True exclusive fullscreen capture is not reliably supported by non-invasive desktop capture
+  APIs without graphics driver hooking. Games must be configured in Borderless Windowed or Windowed mode
+  (industry standard for game translation overlays).
+
+## ADR-020: OCR Provider Architecture and Evaluation Strategy
+
+**Status:** Accepted (AG-02)
+
+**Context:** Accurately recognizing English game subtitles in real time requires evaluating candidate OCR
+engines for accuracy, latency, memory footprint, licensing, and Windows 11 Smart App Control compatibility.
+
+**Decision:**
+- Keep OCR behind the modular `IOcrProvider` interface in `Subviora.Core.Vision`.
+- Implement and evaluate candidate providers:
+  1. `WindowsOcrProvider`: Built-in WinRT `Windows.Media.Ocr.OcrEngine`. 0 MB application download,
+     Microsoft-signed (100% Smart App Control compliant), zero memory footprint overhead, ~15-40ms latency.
+     Requires the Windows English OCR language pack.
+  2. `TesseractOcrProvider`: Tesseract 5.2.0 (Apache-2.0 license). Bundled native x64 DLLs (`tesseract50.dll`,
+     `liblept.dll`) verified compatible with Windows 11 SAC. Uses `tessdata_fast` English traineddata (~4 MB).
+     Latency ~30-65ms on cropped subtitle regions.
+  3. `PaddleOcrBenchmarkAdapter`: Documented and evaluated via comparative benchmark adapter. Requires ONNX
+     Runtime / Paddle Inference unmanaged runtimes (~150-300 MB) and ~15 MB model weights. High accuracy on
+     stylized text but significant binary footprint.
+  4. `MockOcrProvider`: Deterministic provider for automated regression tests and CI runners.
+- Benchmark harness: `Subviora.Vision.Benchmark.OcrBenchmarkRunner` measures Character Error Rate (CER),
+  Word Error Rate (WER), Bounding Box IoU, Latency percentiles (P50, P95, Mean), Cold Start duration,
+  and memory working set delta.
+
+

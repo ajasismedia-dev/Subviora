@@ -12,6 +12,7 @@ public sealed partial class MainViewModel : ObservableObject
     public MainViewModel(
         DashboardViewModel dashboard,
         GameProfilesViewModel gameProfiles,
+        OcrDiagnosticsViewModel ocrDiagnostics,
         SettingsViewModel settings,
         ApplicationInfo appInfo,
         ILogger<MainViewModel> logger)
@@ -21,6 +22,7 @@ public sealed partial class MainViewModel : ObservableObject
         [
             new NavigationItem("Kontrol Paneli", "\uE80F", dashboard, IsImplemented: true),
             new NavigationItem("Oyun Profilleri", "\uE7FC", gameProfiles, IsImplemented: true),
+            new NavigationItem("Yakalama & OCR", "\uE722", ocrDiagnostics, IsImplemented: true),
             new NavigationItem("Çeviri", "\uE774", PlaceholderPageViewModel.CreateTranslation(), IsImplemented: false),
             new NavigationItem("Altyazı Katmanı", "\uE7F0", PlaceholderPageViewModel.CreateOverlay(), IsImplemented: false),
             new NavigationItem("Ayarlar", "\uE713", settings, IsImplemented: true),

@@ -16,13 +16,29 @@ public sealed record OcrRequest(CapturedFrame Frame, IReadOnlyList<NormalizedRec
 public sealed record OcrTextLine(string Text, NormalizedRect Bounds, double Confidence);
 
 /// <summary>Result of an OCR pass.</summary>
-public sealed record OcrResult(IReadOnlyList<OcrTextLine> Lines);
+public sealed record OcrResult(IReadOnlyList<OcrTextLine> Lines)
+{
+    /// <summary>An empty OCR result with no recognised lines.</summary>
+    public static OcrResult Empty { get; } = new([]);
+
+    /// <summary>All lines joined by newlines.</summary>
+    public string FullText => string.Join(Environment.NewLine, Lines.Select(l => l.Text));
+}
 
 /// <summary>Recognises text in a captured frame. Implementations must be replaceable.</summary>
 public interface IOcrProvider
 {
     /// <summary>Stable provider identifier.</summary>
     string Id { get; }
+
+    /// <summary>Human-readable display name for UI dropdowns.</summary>
+    string DisplayName => Id;
+
+    /// <summary>True when the engine and its dependencies/models are available on this system.</summary>
+    bool IsAvailable => true;
+
+    /// <summary>Explanation if the engine is unavailable (e.g. missing language pack or model).</summary>
+    string? AvailabilityMessage => null;
 
     Task<OcrResult> RecognizeAsync(OcrRequest request, CancellationToken cancellationToken);
 }

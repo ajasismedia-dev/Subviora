@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <RootNamespace>Subviora.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
@@ -18,6 +18,8 @@
     <ProjectReference Include="..\..\src\Subviora.Core\Subviora.Core.csproj" />
     <ProjectReference Include="..\..\src\Subviora.GameProfiles\Subviora.GameProfiles.csproj" />
     <ProjectReference Include="..\..\src\Subviora.Infrastructure\Subviora.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Subviora.Capture\Subviora.Capture.csproj" />
+    <ProjectReference Include="..\..\src\Subviora.Vision\Subviora.Vision.csproj" />
   </ItemGroup>
 
   <ItemGroup>

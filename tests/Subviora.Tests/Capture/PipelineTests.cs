@@ -1,0 +1,132 @@
+using Subviora.Capture.Pipeline;
+using Subviora.Core.Capture;
+using Subviora.Core.Geometry;
+using Subviora.Core.Vision;
+
+namespace Subviora.Tests.Capture;
+
+public sealed class PipelineTests
+{
+    private sealed class FastMockCaptureProvider : IScreenCaptureProvider
+    {
+        public string Id => "fast-mock-capture";
+
+        public ValueTask<CapturedFrame> CaptureFrameAsync(CaptureTarget target, CancellationToken cancellationToken = default)
+        {
+            var frame = CapturedFrame.CreateEmpty(320, 240);
+            return ValueTask.FromResult(frame);
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class SlowMockOcrProvider : IOcrProvider
+    {
+        private readonly int _delayMs;
+        private int _currentConcurrentCount;
+        private int _maxConcurrentCount;
+
+        public string Id => "slow-mock-ocr";
+        public string DisplayName => "Slow Mock OCR";
+        public bool IsAvailable => true;
+        public string? AvailabilityMessage => null;
+        public int MaxConcurrentObserved => _maxConcurrentCount;
+
+        public SlowMockOcrProvider(int delayMs)
+        {
+            _delayMs = delayMs;
+        }
+
+        public async Task<OcrResult> RecognizeAsync(OcrRequest request, CancellationToken cancellationToken = default)
+        {
+            int current = Interlocked.Increment(ref _currentConcurrentCount);
+            lock (this)
+            {
+                if (current > _maxConcurrentCount)
+                {
+                    _maxConcurrentCount = current;
+                }
+            }
+
+            try
+            {
+                await Task.Delay(_delayMs, cancellationToken).ConfigureAwait(false);
+                return new OcrResult([
+                    new OcrTextLine("Mock subtitle text", new NormalizedRect(0.1, 0.8, 0.8, 0.1), 0.95)
+                ]);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _currentConcurrentCount);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Pipeline_DropsStaleFrames_WhenOcrIsSlowerThanCapture()
+    {
+        var capture = new FastMockCaptureProvider();
+        var slowOcr = new SlowMockOcrProvider(delayMs: 120);
+
+        var pipeline = new CaptureProcessingPipeline(capture, slowOcr)
+        {
+            OcrSamplingIntervalMs = 10 // Attempt OCR frequently
+        };
+
+        var target = new CaptureTarget(new nint(123), 1001);
+
+        pipeline.Start(target);
+
+        // Allow loop to capture multiple frames while OCR is busy with the first
+        await Task.Delay(350, TestContext.Current.CancellationToken);
+
+        pipeline.Stop();
+
+        var diag = pipeline.CollectDiagnostics();
+
+        Assert.True(diag.TotalFramesCaptured > 1, $"Expected captured frames > 1, got {diag.TotalFramesCaptured}");
+        Assert.True(diag.DroppedFramesCount > 0, $"Expected dropped frames > 0, got {diag.DroppedFramesCount}");
+        Assert.True(diag.TotalFramesCaptured > diag.TotalFramesProcessed, "Captured frames should exceed processed frames under load");
+        Assert.Equal(1, slowOcr.MaxConcurrentObserved);
+
+        await pipeline.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Pipeline_CaptureOnce_ReturnsFrameAndUpdatesLatest()
+    {
+        var capture = new FastMockCaptureProvider();
+        var ocr = new SlowMockOcrProvider(delayMs: 10);
+        var pipeline = new CaptureProcessingPipeline(capture, ocr);
+        var target = new CaptureTarget(new nint(456), 1002);
+
+        var frame = await pipeline.CaptureOnceAsync(target, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(frame);
+        Assert.Equal(320, frame.Width);
+        Assert.Equal(240, frame.Height);
+        Assert.Same(frame, pipeline.LatestFrame);
+
+        await pipeline.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Pipeline_StopAndDispose_ExecutesCleanly()
+    {
+        var capture = new FastMockCaptureProvider();
+        var ocr = new SlowMockOcrProvider(delayMs: 10);
+        var pipeline = new CaptureProcessingPipeline(capture, ocr);
+        var target = new CaptureTarget(new nint(789), 1003);
+
+        pipeline.Start(target);
+        Assert.True(pipeline.IsRunning);
+
+        pipeline.Stop();
+        Assert.False(pipeline.IsRunning);
+
+        await pipeline.DisposeAsync();
+
+        // Calling start on disposed pipeline should throw ObjectDisposedException
+        Assert.Throws<ObjectDisposedException>(() => pipeline.Start(target));
+    }
+}

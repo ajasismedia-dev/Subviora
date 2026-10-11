@@ -3,7 +3,7 @@
   <!-- Subviora.Desktop: WPF management application (composition root). -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <RootNamespace>Subviora.Desktop</RootNamespace>
     <AssemblyName>Subviora</AssemblyName>
     <UseWPF>true</UseWPF>

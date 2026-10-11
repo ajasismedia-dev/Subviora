@@ -1,7 +1,7 @@
 # Subviora Architecture
 
-Status: **AG-01 (foundation)**. This document describes the approved architecture, what exists today,
-and the boundaries future stages must respect. Sections marked *planned* are not implemented.
+Status: **AG-02 (Screen Capture & OCR Benchmark)**. This document describes the approved architecture,
+what exists today, and the boundaries future stages must respect.
 
 ## 1. Goals and constraints
 
@@ -18,23 +18,23 @@ and the boundaries future stages must respect. Sections marked *planned* are not
 Subviora.sln
 ├─ src/
 │  ├─ Subviora.Core            net10.0          Domain models + module contracts. No dependencies.
-│  ├─ Subviora.Infrastructure  net10.0          Paths, configuration, validation, logging (→ SQLite later).
-│  ├─ Subviora.GameProfiles    net10.0          Profile JSON schema v1, validation, file-system store.
-│  ├─ Subviora.Capture         net10.0-windows  (planned) Windows Graphics Capture provider. Empty.
-│  ├─ Subviora.Vision          net10.0          (planned) OCR + Smart UI Detection providers. Empty.
-│  ├─ Subviora.Translation     net10.0          (planned) Offline/online translation providers. Empty.
-│  ├─ Subviora.Overlay         net10.0-windows  (planned) Win32 + Direct2D/DirectWrite overlay. Empty.
+│  ├─ Subviora.Infrastructure  net10.0          Paths, configuration, validation, logging.
+│  ├─ Subviora.GameProfiles    net10.0          Profile JSON schema v1, validation, layered override store.
+│  ├─ Subviora.Capture         net10.0-windows  Window discovery, WGC, BitBlt fallback, bounded pipeline.
+│  ├─ Subviora.Vision          net10.0-windows  Windows OCR, Tesseract 5.2, Paddle adapter, benchmark harness.
+│  ├─ Subviora.Translation     net10.0          (planned, AG-03) Offline/online translation providers.
+│  ├─ Subviora.Overlay         net10.0-windows  (planned, AG-04) Win32 + Direct2D/DirectWrite overlay.
 │  └─ Subviora.Desktop         net10.0-windows  WPF management app; composition root. Output: Subviora.exe
 ├─ tests/
-│  └─ Subviora.Tests           net10.0          xUnit v3 unit + architecture tests.
+│  └─ Subviora.Tests           net10.0-windows  xUnit v3 unit, architecture, capture & benchmark tests.
 └─ profiles/
    ├─ builtin/                 Built-in game profiles (shipped read-only next to the executable).
    └─ schema/                  JSON Schema for profile documents.
 ```
 
-The four *planned* module projects intentionally contain only a project file and a README describing
-their boundary. AG-01 contains **no fake implementations** of capture, OCR, classification,
-translation or overlay.
+In AG-02, `Subviora.Capture` and `Subviora.Vision` have been fully implemented with production-grade
+components and benchmark tools. `Subviora.Translation` and `Subviora.Overlay` remain reserved boundaries
+for subsequent stages (no fake implementations).
 
 ## 3. Dependency rules
 

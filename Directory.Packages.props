@@ -20,6 +20,10 @@
     <PackageVersion Include="Serilog.Formatting.Compact" Version="3.0.0" />
   </ItemGroup>
 
+  <ItemGroup Label="OCR (Apache-2.0)">
+    <PackageVersion Include="Tesseract" Version="5.2.0" />
+  </ItemGroup>
+
   <ItemGroup Label="Testing (Apache-2.0 / MIT)">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />

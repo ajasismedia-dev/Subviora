@@ -6,39 +6,50 @@ application's placeholder pages (for example, "Yol haritası: Aşama 4" on the T
 
 | Stage | Name | Status |
 |---|---|---|
-| 1 | Foundation | **In progress: AG-01 delivered** |
-| 2 | Capture and game detection | Planned |
-| 3 | OCR and Smart UI Detection | Planned |
-| 4 | Offline translation and cache | Planned |
+| 1 | Foundation | **Delivered (AG-01 & AG-01.1)** |
+| 2 | Capture and OCR Benchmark | **Delivered (AG-02)** |
+| 3 | Offline translation and Smart UI Detection | Planned (AG-03) |
+| 4 | Translation cache and offline optimization | Planned |
 | 5 | Native subtitle overlay | Planned |
 | 6 | Calibration tooling and optional online providers | Planned |
 | 7 | Performance, signing, installer and Steam release | Planned |
 
 ```mermaid
 flowchart LR
-  S1["1 Foundation"] --> S2["2 Capture + detection"] --> S3["3 OCR + Smart UI"] --> S4["4 Offline translation"] --> S5["5 Native overlay"] --> S6["6 Calibration + online"] --> S7["7 Hardening + release"]
+  S1["1 Foundation"] --> S2["2 Capture + OCR Benchmark"] --> S3["3 Offline Translation"] --> S4["4 Cache + Optimization"] --> S5["5 Native Overlay"] --> S6["6 Calibration + Online"] --> S7["7 Hardening + Steam"]
 ```
 
-## Stage 1: Foundation (AG-01)
+## Stage 1: Foundation (AG-01 & AG-01.1)
 
-Delivered in AG-01:
+Delivered in AG-01 & AG-01.1:
 
 - Solution structure, module boundaries and dependency rules (verified by tests).
 - WPF management shell: dark theme, Turkish UI, navigation, honest status for features that are not implemented.
 - Lifecycle: single instance, dependency injection (generic host), configuration loading and validation,
   structured logging, global exception handling, per-user data directories, tray icon.
 - Module contracts: capture, OCR, UI classification, translation, overlay renderer, game profile provider.
-- Game profile schema v1, loader and validator, user overrides, and an uncalibrated GTA V Story Mode sample.
+- Game profile schema v1, loader and validator, layered user overrides, Universal Mode fallback, and GTA V sample.
+- GitHub Actions CI pipeline (`.github/workflows/ci.yml`).
 
-Remaining foundation work, to be scheduled with stage 2: CI pipeline, application icon asset, and
-localization resources.
+## Stage 2: Capture and OCR Benchmark (AG-02)
 
-## Stage 2: Capture and game detection
+Delivered in AG-02:
 
-- Detect supported games by executable name (from the profiles) and track their window.
-- `IScreenCaptureProvider` implementation using Windows Graphics Capture (Direct3D 11 frames).
-- Handle window resize, minimise, monitor change, DPI change, and borderless and exclusive fullscreen.
-- Measure capture overhead and keep it within the frame budget.
+- Safe, non-invasive Windows game window discovery (`Win32WindowDiscoveryService`) filtering invalid, cloaked,
+  minimized, and tool windows. Automatically associates game profiles (GTA V) and supports Universal Mode.
+- Windows Graphics Capture provider (`WindowsGraphicsCaptureProvider`) via Direct3D 11 surface pools with
+  dynamic DPI and window resize adaptation.
+- Win32 GDI / BitBlt fallback capture provider (`Win32BitBltCaptureProvider`) for non-D3D or headless environments.
+- Asynchronous, single-slot bounded processing pipeline (`CaptureProcessingPipeline`) with proactive stale
+  frame dropping and `SemaphoreSlim(1,1)` OCR concurrency control.
+- Telemetry & diagnostics tracking (FPS, resolution, acquisition latency, OCR latency, CPU/memory, frame dropping).
+- Diagnostic on-demand screenshot export to `%LOCALAPPDATA%\Subviora\Screenshots`.
+- Modular OCR provider architecture (`IOcrProvider`) with implementations for Windows OCR (WinRT built-in, 0 MB),
+  Tesseract 5.2 (Apache-2.0, SAC-compliant native binaries), PaddleOCR benchmark adapter, and Mock OCR.
+- OCR Benchmark Harness (`Subviora.Vision.Benchmark.OcrBenchmarkRunner`) computing Character Error Rate (CER),
+  Word Error Rate (WER), Bounding Box IoU, Latency percentiles (P50, P95, Mean), and memory delta.
+- Dedicated desktop diagnostic view (**Yakalama & OCR**) with live window selection, manual frame capture,
+  bounding-box preview, and benchmark trigger.
 
 ## Stage 3: OCR and Smart UI Detection
 

@@ -1,7 +1,9 @@
 using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Subviora.Core.Capture;
 using Subviora.Core.Profiles;
+using Subviora.Core.Vision;
 using Subviora.Desktop.Services;
 using Subviora.Desktop.ViewModels;
 using Subviora.GameProfiles.Storage;
@@ -33,9 +35,45 @@ internal static class DesktopServiceCollectionExtensions
         services.AddSingleton<ShellLauncher>();
         services.AddSingleton<TrayIconService>();
 
+        // Window Discovery
+        services.AddSingleton<IWindowDiscoveryService, Capture.Discovery.Win32WindowDiscoveryService>();
+
+        // Screen Capture Providers
+        services.AddSingleton<Capture.WindowsGraphicsCapture.WindowsGraphicsCaptureProvider>();
+        services.AddSingleton<Capture.Gdi.Win32BitBltCaptureProvider>();
+        services.AddSingleton<IScreenCaptureProvider>(sp =>
+            Capture.WindowsGraphicsCapture.WindowsGraphicsCaptureProvider.IsSupported()
+                ? sp.GetRequiredService<Capture.WindowsGraphicsCapture.WindowsGraphicsCaptureProvider>()
+                : sp.GetRequiredService<Capture.Gdi.Win32BitBltCaptureProvider>());
+        services.AddSingleton<IEnumerable<IScreenCaptureProvider>>(sp =>
+        [
+            sp.GetRequiredService<Capture.WindowsGraphicsCapture.WindowsGraphicsCaptureProvider>(),
+            sp.GetRequiredService<Capture.Gdi.Win32BitBltCaptureProvider>()
+        ]);
+
+        // OCR Providers
+        services.AddSingleton<Vision.WindowsOcr.WindowsOcrProvider>();
+        services.AddSingleton<Vision.Tesseract.TesseractOcrProvider>();
+        services.AddSingleton<Vision.PaddleOcr.PaddleOcrBenchmarkAdapter>();
+        services.AddSingleton<Vision.Mock.MockOcrProvider>();
+        services.AddSingleton<IOcrProvider>(sp => sp.GetRequiredService<Vision.WindowsOcr.WindowsOcrProvider>());
+        services.AddSingleton<IEnumerable<IOcrProvider>>(sp =>
+        [
+            sp.GetRequiredService<Vision.WindowsOcr.WindowsOcrProvider>(),
+            sp.GetRequiredService<Vision.Tesseract.TesseractOcrProvider>(),
+            sp.GetRequiredService<Vision.PaddleOcr.PaddleOcrBenchmarkAdapter>(),
+            sp.GetRequiredService<Vision.Mock.MockOcrProvider>()
+        ]);
+
+        // Processing Pipeline
+        services.AddSingleton(sp => new Capture.Pipeline.CaptureProcessingPipeline(
+            sp.GetRequiredService<IScreenCaptureProvider>(),
+            sp.GetRequiredService<Vision.WindowsOcr.WindowsOcrProvider>()));
+
         // View models and windows
         services.AddSingleton<DashboardViewModel>();
         services.AddSingleton<GameProfilesViewModel>();
+        services.AddSingleton<OcrDiagnosticsViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
