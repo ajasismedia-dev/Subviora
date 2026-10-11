@@ -23,8 +23,9 @@ public abstract class PageViewModel : ObservableObject
 public sealed record DetailItem(string Label, string Value, bool IsPath = false);
 
 /// <summary>An entry in the sidebar.</summary>
+/// <param name="Id">Stable programmatic identifier for UI automation.</param>
 /// <param name="Title">Turkish display title.</param>
 /// <param name="Glyph">Segoe Fluent Icons / MDL2 glyph.</param>
 /// <param name="Page">Page shown when selected.</param>
 /// <param name="IsImplemented">False shows a "Yakında" (coming soon) marker.</param>
-public sealed record NavigationItem(string Title, string Glyph, PageViewModel Page, bool IsImplemented);
+public sealed record NavigationItem(string Id, string Title, string Glyph, PageViewModel Page, bool IsImplemented);

@@ -33,6 +33,8 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
     private double _currentFps;
 
     private DateTimeOffset _lastOcrTimestamp = DateTimeOffset.MinValue;
+    private DateTimeOffset _lastFreshFrameTimestamp = DateTimeOffset.UtcNow;
+    private DateTimeOffset _lastObservedCapturedAt = DateTimeOffset.MinValue;
     private Task? _activeOcrTask;
     private TimeSpan _lastCpuTotalTime;
     private DateTimeOffset _lastCpuSampleTime = DateTimeOffset.UtcNow;
@@ -106,7 +108,32 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
             _pipelineCts = null;
             _pipelineTask = null;
             _activeOcrTask = null;
+            _lastCaptureError = null;
+
+            var diag = CollectDiagnostics();
+            if (_latestFrame is not null)
+            {
+                PipelineTicked?.Invoke(_latestFrame, null, diag);
+            }
         }
+    }
+
+    /// <summary>Resets cached frames, errors, statistics, and OCR results.</summary>
+    public void Reset()
+    {
+        _latestFrame = null;
+        _latestOcrResult = null;
+        _lastCaptureError = null;
+        _lastOcrError = null;
+        _currentFps = 0;
+        _lastCaptureLatencyMs = 0;
+        _lastOcrLatencyMs = 0;
+        Interlocked.Exchange(ref _totalFramesCaptured, 0);
+        Interlocked.Exchange(ref _totalFramesProcessed, 0);
+        Interlocked.Exchange(ref _droppedFramesCount, 0);
+        _lastFreshFrameTimestamp = DateTimeOffset.MinValue;
+        _lastObservedCapturedAt = DateTimeOffset.MinValue;
+        _lastOcrTimestamp = DateTimeOffset.MinValue;
     }
 
     /// <summary>Captures a single frame synchronously on demand.</summary>
@@ -183,6 +210,12 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
                 _lastCaptureError = null;
                 Interlocked.Increment(ref _totalFramesCaptured);
 
+                if (frame.CapturedAt > _lastObservedCapturedAt)
+                {
+                    _lastFreshFrameTimestamp = DateTimeOffset.UtcNow;
+                    _lastObservedCapturedAt = frame.CapturedAt;
+                }
+
                 UpdateFps();
 
                 _latestFrame = frame;
@@ -190,14 +223,18 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
                 // Non-blocking OCR dispatch
                 TryDispatchOcr(frame, cancellationToken);
 
-                // Publish tick event
+                // Publish tick event with null ocrResult so newly arrived frames are not labeled with stale OCR text
                 var diagnostics = CollectDiagnostics();
-                PipelineTicked?.Invoke(frame, _latestOcrResult, diagnostics);
+                PipelineTicked?.Invoke(frame, null, diagnostics);
 
                 // Target ~30 FPS capture rate for background diagnostics loop
                 await Task.Delay(33, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception) when (cancellationToken.IsCancellationRequested)
             {
                 break;
             }
@@ -207,7 +244,7 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
                 var diagnostics = CollectDiagnostics();
                 if (_latestFrame is not null)
                 {
-                    PipelineTicked?.Invoke(_latestFrame, _latestOcrResult, diagnostics);
+                    PipelineTicked?.Invoke(_latestFrame, null, diagnostics);
                 }
 
                 await Task.Delay(250, cancellationToken).ConfigureAwait(false);
@@ -246,6 +283,10 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
                 _lastOcrError = null;
                 _latestOcrResult = result;
                 Interlocked.Increment(ref _totalFramesProcessed);
+
+                // Publish tick event with the fresh OCR result matched with its analyzed frame
+                var diag = CollectDiagnostics();
+                PipelineTicked?.Invoke(frame, result, diag);
             }
             catch (OperationCanceledException)
             {
@@ -323,11 +364,26 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
             // Diagnostics should never crash the pipeline
         }
 
-        string status = IsRunning ? "Yakalıyor" : "Boşta";
-        if (!string.IsNullOrEmpty(_lastCaptureError))
+        double timeSinceLastFreshMs = (DateTimeOffset.UtcNow - _lastFreshFrameTimestamp).TotalMilliseconds;
+        bool isIdle = IsRunning && timeSinceLastFreshMs > 1000;
+
+        string status;
+        if (!IsRunning)
+        {
+            status = "Durduruldu";
+        }
+        else if (!string.IsNullOrEmpty(_lastCaptureError))
         {
             status = "Yakalama Hatası";
         }
+        else
+        {
+            status = isIdle ? "Pencere Boşta (Değişiklik Yok)" : "Canlı Akış (Aktif)";
+        }
+
+        string? targetDesc = Target is not null
+            ? $"HWND 0x{Target.WindowHandle:X8} (PID {Target.ProcessId})"
+            : null;
 
         return new CaptureDiagnostics(
             Target: Target,
@@ -343,7 +399,11 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
             TotalFramesProcessed: Interlocked.Read(ref _totalFramesProcessed),
             DroppedFramesCount: Interlocked.Read(ref _droppedFramesCount),
             LastCaptureError: _lastCaptureError,
-            LastOcrError: _lastOcrError);
+            LastOcrError: _lastOcrError,
+            ProviderName: CaptureProvider.Id,
+            TargetWindowDescription: targetDesc,
+            TimeSinceLastFreshFrameMs: Math.Round(timeSinceLastFreshMs, 0),
+            IsWindowIdle: isIdle);
     }
 
     public async ValueTask DisposeAsync()

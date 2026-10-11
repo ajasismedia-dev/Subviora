@@ -37,4 +37,7 @@ public sealed record WindowInfo(
         string.IsNullOrEmpty(MatchedGameId) || IsUniversalFallback
             ? $"{Title} ({ExecutableName} · PID {ProcessId})"
             : $"[{MatchedGameId.ToUpperInvariant()}] {Title} ({ExecutableName} · PID {ProcessId})";
+
+    /// <inheritdoc />
+    public override string ToString() => DisplayText;
 }

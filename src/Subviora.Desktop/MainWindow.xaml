@@ -66,14 +66,16 @@
           </StackPanel>
         </Border>
 
-        <ListBox Style="{StaticResource NavList}"
+        <ListBox x:Name="NavigationListBox"
+                 AutomationProperties.AutomationId="NavigationListBox"
+                 Style="{StaticResource NavList}"
                  ItemContainerStyle="{StaticResource NavListItem}"
                  ItemsSource="{Binding NavigationItems}"
                  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                  AutomationProperties.Name="Gezinme">
           <ListBox.ItemTemplate>
             <DataTemplate DataType="{x:Type vm:NavigationItem}">
-              <DockPanel AutomationProperties.Name="{Binding Title}">
+              <DockPanel>
                 <TextBlock DockPanel.Dock="Left" Style="{StaticResource Text.Icon}" Text="{Binding Glyph}" Margin="0,0,12,0" />
                 <Border x:Name="SoonBadge" DockPanel.Dock="Right" Style="{StaticResource Badge}" Padding="6,1,6,2" Visibility="Collapsed">
                   <TextBlock Style="{StaticResource Badge.Text}" FontSize="10" Text="Yakında" />

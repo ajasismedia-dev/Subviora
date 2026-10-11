@@ -337,6 +337,64 @@ engines for accuracy, latency, memory footprint, licensing, and Windows 11 Smart
   - Track in-flight `_activeOcrTask` in `CaptureProcessingPipeline` and await completion in `Stop()` to prevent orphan background tasks referencing disposed resources.
   - Measure CPU usage percentage accurately via `Process.TotalProcessorTime` differentials.
 
+## ADR-023: WGC Persistent Frame Streaming, Telemetry Observability & Automated UI Test Bot
+
+**Status:** Accepted (AG-02.3)
+
+**Context:**
+1. In AG-02.2, `WindowsGraphicsCaptureProvider` hooked `Direct3D11CaptureFramePool.FrameArrived` per requested frame with a single-slot buffer (`numberOfBuffers = 1`). Because the Desktop Window Manager (DWM) only fires `FrameArrived` when the captured window content changes, idle/static windows caused `CaptureFrameAsync` to timeout every 2000 ms. This degraded frame rates to near zero and caused massive artificial capture latency (~1843 ms).
+2. The UI in `CaptureProcessingPipeline` emitted the previous `_latestOcrResult` on every capture tick (~33 ms). As a result, newly captured frames were misleadingly decorated with stale OCR text even before OCR evaluation occurred.
+3. Windows UI testing was performed manually. An automated, repeatable test bot was required to test all 14 scenarios across window selection, GDI and WGC capture, live streaming, dynamic text updates, OCR recognition, error states, and clean teardown, with machine-readable reporting and strict Smart App Control handling.
+
+**Decision:**
+- **Persistent WGC Streaming Producer:**
+  - `WindowsGraphicsCaptureProvider` establishes a persistent session upon activation. It hooks `_framePool.FrameArrived` exactly once prior to `_session.StartCapture()`.
+  - Frame pool uses `numberOfBuffers = 2` (double-buffering) to prevent DWM pool starvation and dropped composition frames.
+  - An atomic extraction gate (`_isExtracting`) ensures fast frame draining and immediate disposal of underlying Direct3D11 surfaces, keeping memory overhead minimal.
+  - The latest valid frame is cached in `_latestValidFrame` with its original capture timestamp.
+  - Idle window detection: `CaptureFrameAsync` waits up to 60 ms for an incoming frame. If no frame arrives (window is static), it returns the cached frame with its original timestamp, avoiding blocking timeouts.
+  - Frame pool recreation handles window resizing via `_framePool.Recreate` without session destruction.
+  - Clean lifecycle: Window closure is handled via `_item.Closed`, and disposal cleanly unhooks `FrameArrived`, closes the session, and disposes the frame pool.
+- **Diagnostics & Stale OCR Decoupling:**
+  - `CaptureProcessingPipeline` tracks frame freshness (`_lastFreshFrameTimestamp`) vs. idle duration.
+  - When idle time exceeds 1000 ms, status reflects `"Pencere Boşta (Değişiklik Yok)"`; during active streaming, status reflects `"Canlı Akış (Aktif)"`.
+  - Diagnostic telemetry reports: `ProviderName`, `TargetWindowDescription`, `TimeSinceLastFreshFrameMs`, and `IsWindowIdle`.
+  - Intermediate frame capture ticks invoke `PipelineTicked` with `ocrResult = null`. Only when an OCR pass completes does `PipelineTicked` fire with the actual `OcrResult`, eliminating ghosting and stale text rendering.
+- **Automated Windows UI Test Bot (`Subviora.UiTestBot`):**
+  - Implemented in `tools/Automation/Subviora.UiTestBot` targeting `net10.0-windows10.0.19041.0`.
+  - Uses native Windows UI Automation (`System.Windows.Automation`) and explicit `AutomationProperties.AutomationId` assigned to controls in `MainWindow.xaml` and `OcrDiagnosticsView.xaml`.
+  - Features an embedded test target window fixture (`TestTargetFixture`) displaying high-contrast subtitle text ("What are you doing here, Michael? We need to get to the docks before sunset.") that dynamically updates ("MISSION PASSED! RESPECT + ...") to verify dynamic freshness.
+  - Evaluates 12 test scenarios: Process Launch, MainWindow Appearance, Page Navigation, Test Target Creation, Target Window Selection, GDI Single Capture, GDI Streaming, Windows OCR Recognition, WGC Single Capture, WGC Continuous Streaming, Dynamic Content Freshness, and Stop & Restart Lifecycle.
+  - Sıkı doğrulama (Hardening): Sağlayıcı ve hedef pencere değişimlerinde önbellek (`_latestFrame`, çözünürlük, OCR satırları, FPS) anında sıfırlanır (`Reset()`, `InvalidateCaptureState()`). Test botu aktif sağlayıcı adını (`Text_Provider`), hata durumlarını (`Text_Status != 'Yakalama Hatası'`, `Text_LastCaptureError == ''`), geçerli çözünürlüğü ve dinamik metin eşleşmesini zorunlu kılar; sahte/eski kare maskelemesi engellenmiştir.
+  - Generates machine-readable JSON (`artifacts/reports/ui-test-report.json`) and Markdown summary (`artifacts/reports/ui-test-summary.md`), both safely gitignored.
+
+### AG-02.3 Checkpoint Status & Verification Summary
+
+- **Unit Tests:** 122 passed, 0 failed, 0 skipped (2.4s execution).
+- **UI Test Bot Scenarios:** 9 passed, 3 failed, 0 blocked (75.8s execution).
+  - **Passed (9):** `Application_Launch_Health_Check`, `MainWindow_Appearance`, `Page_Navigation_Smoke_Test`, `Test_Target_Window_Creation`, `Target_Window_Selection`, `GDI_Single_Frame_Capture` (784x411 BGRA32), `GDI_Continuous_Capture` (18.1 FPS), `Windows_OCR_Recognition_Test` (CER: %5.0, WER: %10.0), `WGC_Stop_And_Restart_Lifecycle`.
+  - **Failed (3):** `WGC_Single_Frame_Capture`, `WGC_Continuous_Streaming`, `WGC_Dynamic_Content_Freshness`.
+- **WGC Verification Status:** Real-window WGC continuous capture remains unverified.
+
+### Known Issues
+1. **WGC Test Fixture Redirection Surface in Automation Session:**
+   - In terminal/agent automation execution environments, `TestTargetFixture` (WinForms) is created without an active DWM hardware redirection surface, causing `CreateItemForWindow` to report `item.Size == 0x0`.
+   - `WindowsGraphicsCaptureProvider` now correctly rejects 0x0 items and throws `InvalidOperationException` instead of masking with fallback dimensions, resulting in explicit failure of WGC tests against the synthetic fixture.
+2. **Real Desktop / Game WGC Streaming Unverified:**
+   - Real interactive desktop windows (e.g. Notepad) report valid sizes and `CreateCaptureSession` succeeds without `0x8007139F`, but continuous frame streaming against real game windows (such as GTA V) has not been verified in a live gameplay session.
+
+### Exact Next Steps for Resuming Development
+1. **Interactive Real-Target Validation:**
+   - Launch Subviora and test WGC against a real, running interactive window (e.g., Notepad or a windowed game) to verify continuous frame arrival and dirty rect updates.
+2. **Fixture Enhancement for Automated CI/Bot:**
+   - Replace or enhance `TestTargetFixture` with a top-level native Win32/DirectX window possessing a valid swapchain/composition surface across all desktop station contexts so automated WGC tests can run end-to-end headlessly.
+3. **WGC Streaming Telemetry & Ground Truth Confirmation:**
+   - Validate that WGC delivers continuous 30+ FPS streaming on games without thread starvation or memory leaks.
+4. **Transition Gate to AG-03:**
+   - Only begin AG-03 (Translation & Subtitle Overlay) after real-window WGC streaming is verified and confirmed.
+
+
+
 
 
 

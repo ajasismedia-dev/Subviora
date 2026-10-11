@@ -292,6 +292,8 @@
   </Style>
 
   <Style x:Key="NavListItem" TargetType="ListBoxItem">
+    <Setter Property="AutomationProperties.AutomationId" Value="{Binding Id}" />
+    <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
     <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Accent}" />
     <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}" />
     <Setter Property="Cursor" Value="Hand" />

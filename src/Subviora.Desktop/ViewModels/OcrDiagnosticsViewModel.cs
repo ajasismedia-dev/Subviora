@@ -85,6 +85,9 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
     private long _totalFramesCaptured;
     private long _totalFramesProcessed;
     private long _droppedFramesCount;
+    private double _timeSinceLastFreshFrameMs;
+    private string? _providerName;
+    private string? _targetWindowDescription;
     private string? _lastCaptureError;
     private string? _lastOcrError;
     private string? _statusMessage;
@@ -117,6 +120,7 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
             {
                 OnPropertyChanged(nameof(CanStartCapture));
                 _ = UpdateActiveRegionsAsync();
+                InvalidateCaptureState();
                 if (value is not null && IsCapturing)
                 {
                     _pipeline.Start(value.ToCaptureTarget());
@@ -248,7 +252,19 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
         {
             if (SetProperty(ref _selectedCaptureProvider, value) && value is not null)
             {
+                bool wasCapturing = IsCapturing;
+                if (wasCapturing)
+                {
+                    _pipeline.Stop();
+                }
                 _pipeline.CaptureProvider = value;
+                ProviderName = value.Id;
+                InvalidateCaptureState();
+                if (wasCapturing && SelectedWindow is not null)
+                {
+                    _pipeline.Start(SelectedWindow.ToCaptureTarget());
+                    StatusText = "Canlı Akış (Aktif)";
+                }
             }
         }
     }
@@ -280,6 +296,10 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
     public long TotalFramesCaptured { get => _totalFramesCaptured; private set => SetProperty(ref _totalFramesCaptured, value); }
     public long TotalFramesProcessed { get => _totalFramesProcessed; private set => SetProperty(ref _totalFramesProcessed, value); }
     public long DroppedFramesCount { get => _droppedFramesCount; private set => SetProperty(ref _droppedFramesCount, value); }
+    public double TimeSinceLastFreshFrameMs { get => _timeSinceLastFreshFrameMs; private set => SetProperty(ref _timeSinceLastFreshFrameMs, value); }
+    public string FreshFrameAgeText => _timeSinceLastFreshFrameMs < 1000 ? "Yeni (<1 sn)" : $"{Math.Round(_timeSinceLastFreshFrameMs / 1000.0, 1)} sn önce";
+    public string? ProviderName { get => _providerName; private set => SetProperty(ref _providerName, value); }
+    public string? TargetWindowDescription { get => _targetWindowDescription; private set => SetProperty(ref _targetWindowDescription, value); }
     public string? LastCaptureError { get => _lastCaptureError; private set => SetProperty(ref _lastCaptureError, value); }
     public string? LastOcrError { get => _lastOcrError; private set => SetProperty(ref _lastOcrError, value); }
     public string? StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
@@ -323,6 +343,7 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
             AvailableCaptureProviders.Add(c);
         }
         _selectedCaptureProvider = AvailableCaptureProviders.FirstOrDefault();
+        _providerName = _selectedCaptureProvider?.Id;
 
         AvailableRegionModes.Add(new RegionModeOption(DiagnosticRegionMode.FullFrame, "Tüm Kare (Full Frame)"));
         AvailableRegionModes.Add(new RegionModeOption(DiagnosticRegionMode.ProfileSubtitles, "Oyun Profili Alt Yazıları"));
@@ -437,6 +458,25 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
         }
     }
 
+    private void InvalidateCaptureState()
+    {
+        _pipeline.Reset();
+        FramePreviewImage = null;
+        _previewBitmap = null;
+        ResolutionText = "—";
+        Fps = 0;
+        CaptureLatencyMs = 0;
+        OcrLatencyMs = 0;
+        TotalFramesCaptured = 0;
+        TotalFramesProcessed = 0;
+        DroppedFramesCount = 0;
+        TimeSinceLastFreshFrameMs = 0;
+        LastCaptureError = null;
+        LastOcrError = null;
+        RecognizedLines.Clear();
+        DetectedBoundingBoxes.Clear();
+    }
+
     private void StartCapture()
     {
         if (SelectedWindow is null)
@@ -444,16 +484,23 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
             return;
         }
 
+        InvalidateCaptureState();
+        ProviderName = SelectedCaptureProvider?.Id;
         StatusMessage = $"{SelectedWindow.Title} için yakalama başlatılıyor...";
         _pipeline.Start(SelectedWindow.ToCaptureTarget());
+        StatusText = "Canlı Akış (Aktif)";
         OnPropertyChanged(nameof(IsCapturing));
+        System.Windows.Input.CommandManager.InvalidateRequerySuggested();
     }
 
     private void StopCapture()
     {
         _pipeline.Stop();
         StatusMessage = "Yakalama durduruldu.";
+        StatusText = "Durduruldu";
+        Fps = 0;
         OnPropertyChanged(nameof(IsCapturing));
+        System.Windows.Input.CommandManager.InvalidateRequerySuggested();
     }
 
     private async Task CaptureOnceAsync()
@@ -466,7 +513,11 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
         try
         {
             StatusMessage = "Tek kare yakalanıyor...";
+            ProviderName = SelectedCaptureProvider?.Id;
             var frame = await _pipeline.CaptureOnceAsync(SelectedWindow.ToCaptureTarget());
+            ResolutionText = $"{frame.Width} x {frame.Height} (BGRA32)";
+            StatusText = "Kare Yakalandı";
+            LastCaptureError = null;
             UpdatePreview(frame);
 
             // Automatically run OCR on captured frame
@@ -474,6 +525,13 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
         }
         catch (Exception ex)
         {
+            ResolutionText = "Hata";
+            FramePreviewImage = null;
+            _previewBitmap = null;
+            StatusText = "Yakalama Hatası";
+            LastCaptureError = ex.Message;
+            RecognizedLines.Clear();
+            DetectedBoundingBoxes.Clear();
             StatusMessage = $"Yakalama hatası: {ex.Message}";
             _logger.LogError(ex, "CaptureOnce failed");
         }
@@ -609,6 +667,10 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
             TotalFramesCaptured = diag.TotalFramesCaptured;
             TotalFramesProcessed = diag.TotalFramesProcessed;
             DroppedFramesCount = diag.DroppedFramesCount;
+            TimeSinceLastFreshFrameMs = diag.TimeSinceLastFreshFrameMs;
+            ProviderName = diag.ProviderName;
+            TargetWindowDescription = diag.TargetWindowDescription;
+            OnPropertyChanged(nameof(FreshFrameAgeText));
             LastCaptureError = diag.LastCaptureError;
             LastOcrError = diag.LastOcrError;
 

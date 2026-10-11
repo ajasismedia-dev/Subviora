@@ -157,6 +157,62 @@ public sealed class PipelineTests
         await pipeline.DisposeAsync();
     }
 
+    [Fact]
+    public void Pipeline_Diagnostics_PopulatesProviderAndTargetDescription()
+    {
+        var capture = new FastMockCaptureProvider();
+        var ocr = new SlowMockOcrProvider(delayMs: 10);
+        var pipeline = new CaptureProcessingPipeline(capture, ocr);
+        var target = new CaptureTarget(new nint(0x1234), 5678);
+
+        pipeline.Start(target);
+        var diag = pipeline.CollectDiagnostics();
+
+        Assert.Equal("fast-mock-capture", diag.ProviderName);
+        Assert.NotNull(diag.TargetWindowDescription);
+        Assert.Contains("0x00001234", diag.TargetWindowDescription);
+        Assert.Contains("5678", diag.TargetWindowDescription);
+        Assert.False(diag.IsWindowIdle);
+
+        pipeline.Stop();
+    }
+
+    [Fact]
+    public async Task Pipeline_DecouplesStaleOcrFromCaptureTicks()
+    {
+        var capture = new FastMockCaptureProvider();
+        var slowOcr = new SlowMockOcrProvider(delayMs: 150);
+        var pipeline = new CaptureProcessingPipeline(capture, slowOcr)
+        {
+            OcrSamplingIntervalMs = 500
+        };
+
+        var target = new CaptureTarget(new nint(999), 1005);
+        int ocrTicks = 0;
+        int captureOnlyTicks = 0;
+
+        pipeline.PipelineTicked += (frame, ocrResult, diag) =>
+        {
+            if (ocrResult is not null)
+            {
+                Interlocked.Increment(ref ocrTicks);
+            }
+            else
+            {
+                Interlocked.Increment(ref captureOnlyTicks);
+            }
+        };
+
+        pipeline.Start(target);
+        await Task.Delay(250, TestContext.Current.CancellationToken);
+        pipeline.Stop();
+
+        Assert.True(captureOnlyTicks > 0, $"Expected capture-only ticks > 0, got {captureOnlyTicks}");
+        Assert.True(captureOnlyTicks > ocrTicks, $"Expected capture ticks ({captureOnlyTicks}) > ocr ticks ({ocrTicks})");
+
+        await pipeline.DisposeAsync();
+    }
+
     private sealed class CapturingMockOcrProvider : IOcrProvider
     {
         private readonly Action<OcrRequest> _onRequest;
@@ -174,3 +230,4 @@ public sealed class PipelineTests
         }
     }
 }
+

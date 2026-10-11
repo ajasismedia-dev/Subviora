@@ -63,7 +63,7 @@ settings.local.json
 *.safetensors
 *.gguf
 *.traineddata
-models/
+/models/
 
 # OS
 Thumbs.db

@@ -20,12 +20,12 @@ public sealed partial class MainViewModel : ObservableObject
         _logger = logger;
         NavigationItems =
         [
-            new NavigationItem("Kontrol Paneli", "\uE80F", dashboard, IsImplemented: true),
-            new NavigationItem("Oyun Profilleri", "\uE7FC", gameProfiles, IsImplemented: true),
-            new NavigationItem("Yakalama & OCR", "\uE722", ocrDiagnostics, IsImplemented: true),
-            new NavigationItem("Çeviri", "\uE774", PlaceholderPageViewModel.CreateTranslation(), IsImplemented: false),
-            new NavigationItem("Altyazı Katmanı", "\uE7F0", PlaceholderPageViewModel.CreateOverlay(), IsImplemented: false),
-            new NavigationItem("Ayarlar", "\uE713", settings, IsImplemented: true),
+            new NavigationItem("Nav_Dashboard", "Kontrol Paneli", "\uE80F", dashboard, IsImplemented: true),
+            new NavigationItem("Nav_GameProfiles", "Oyun Profilleri", "\uE7FC", gameProfiles, IsImplemented: true),
+            new NavigationItem("Nav_CaptureOcr", "Yakalama & OCR", "\uE722", ocrDiagnostics, IsImplemented: true),
+            new NavigationItem("Nav_Translation", "Çeviri", "\uE774", PlaceholderPageViewModel.CreateTranslation(), IsImplemented: false),
+            new NavigationItem("Nav_Overlay", "Altyazı Katmanı", "\uE7F0", PlaceholderPageViewModel.CreateOverlay(), IsImplemented: false),
+            new NavigationItem("Nav_Settings", "Ayarlar", "\uE713", settings, IsImplemented: true),
         ];
         _selectedItem = NavigationItems[0];
         VersionText = $"Sürüm {appInfo.Version} · {appInfo.Stage}";

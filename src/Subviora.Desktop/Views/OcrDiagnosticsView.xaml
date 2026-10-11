@@ -27,10 +27,18 @@
         <StackPanel Orientation="Vertical" Margin="0,0,16,6">
           <TextBlock Text="Hedef Pencere" Style="{StaticResource Text.Label}" Margin="0,0,0,4" />
           <StackPanel Orientation="Horizontal">
-            <ComboBox Width="260" ItemsSource="{Binding AvailableWindows}"
+            <ComboBox AutomationProperties.AutomationId="Combo_TargetWindow"
+                      Width="260" ItemsSource="{Binding AvailableWindows}"
                       SelectedItem="{Binding SelectedWindow, Mode=TwoWay}"
-                      DisplayMemberPath="DisplayText" />
-            <Button Style="{StaticResource Button.Secondary}" Content="Yenile"
+                      DisplayMemberPath="DisplayText">
+              <ComboBox.ItemContainerStyle>
+                <Style TargetType="ComboBoxItem">
+                  <Setter Property="AutomationProperties.Name" Value="{Binding DisplayText}" />
+                </Style>
+              </ComboBox.ItemContainerStyle>
+            </ComboBox>
+            <Button AutomationProperties.AutomationId="Button_RefreshWindows"
+                    Style="{StaticResource Button.Secondary}" Content="Yenile"
                     Command="{Binding RefreshWindowsCommand}" Margin="6,0,0,0" Padding="8,4" />
           </StackPanel>
         </StackPanel>
@@ -38,17 +46,31 @@
         <!-- Capture Provider -->
         <StackPanel Orientation="Vertical" Margin="0,0,16,6">
           <TextBlock Text="Yakalama Sağlayıcısı" Style="{StaticResource Text.Label}" Margin="0,0,0,4" />
-          <ComboBox Width="160" ItemsSource="{Binding AvailableCaptureProviders}"
+          <ComboBox AutomationProperties.AutomationId="Combo_CaptureProvider"
+                    Width="160" ItemsSource="{Binding AvailableCaptureProviders}"
                     SelectedItem="{Binding SelectedCaptureProvider, Mode=TwoWay}"
-                    DisplayMemberPath="Id" />
+                    DisplayMemberPath="Id">
+            <ComboBox.ItemContainerStyle>
+              <Style TargetType="ComboBoxItem">
+                <Setter Property="AutomationProperties.Name" Value="{Binding Id}" />
+              </Style>
+            </ComboBox.ItemContainerStyle>
+          </ComboBox>
         </StackPanel>
 
         <!-- OCR Provider -->
         <StackPanel Orientation="Vertical" Margin="0,0,16,6">
           <TextBlock Text="OCR Motoru" Style="{StaticResource Text.Label}" Margin="0,0,0,4" />
-          <ComboBox Width="200" ItemsSource="{Binding AvailableOcrProviders}"
+          <ComboBox AutomationProperties.AutomationId="Combo_OcrProvider"
+                    Width="200" ItemsSource="{Binding AvailableOcrProviders}"
                     SelectedItem="{Binding SelectedOcrProvider, Mode=TwoWay}"
-                    DisplayMemberPath="DisplayName" />
+                    DisplayMemberPath="DisplayName">
+            <ComboBox.ItemContainerStyle>
+              <Style TargetType="ComboBoxItem">
+                <Setter Property="AutomationProperties.Name" Value="{Binding DisplayName}" />
+              </Style>
+            </ComboBox.ItemContainerStyle>
+          </ComboBox>
           <TextBlock Text="{Binding OcrProviderAvailabilityText}" FontSize="11" Margin="0,4,0,0"
                      Foreground="{StaticResource Brush.TextMuted}" MaxWidth="200" TextWrapping="Wrap" />
         </StackPanel>
@@ -56,7 +78,8 @@
         <!-- OCR Region Selection -->
         <StackPanel Orientation="Vertical" Margin="0,0,16,6">
           <TextBlock Text="OCR Bölgesi" Style="{StaticResource Text.Label}" Margin="0,0,0,4" />
-          <ComboBox Width="200" ItemsSource="{Binding AvailableRegionModes}"
+          <ComboBox AutomationProperties.AutomationId="Combo_RegionMode"
+                    Width="200" ItemsSource="{Binding AvailableRegionModes}"
                     SelectedItem="{Binding SelectedRegionMode, Mode=TwoWay}"
                     DisplayMemberPath="DisplayName" />
         </StackPanel>
@@ -68,36 +91,46 @@
           <StackPanel Orientation="Horizontal">
             <StackPanel Margin="0,0,4,0">
               <TextBlock Text="X" FontSize="10" Foreground="{StaticResource Brush.TextMuted}" />
-              <TextBox Width="42" Text="{Binding ManualRegionXText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              <TextBox AutomationProperties.AutomationId="Input_ManualRegionX"
+                       Width="42" Text="{Binding ManualRegionXText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             </StackPanel>
             <StackPanel Margin="0,0,4,0">
               <TextBlock Text="Y" FontSize="10" Foreground="{StaticResource Brush.TextMuted}" />
-              <TextBox Width="42" Text="{Binding ManualRegionYText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              <TextBox AutomationProperties.AutomationId="Input_ManualRegionY"
+                       Width="42" Text="{Binding ManualRegionYText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             </StackPanel>
             <StackPanel Margin="0,0,4,0">
               <TextBlock Text="G" FontSize="10" Foreground="{StaticResource Brush.TextMuted}" />
-              <TextBox Width="42" Text="{Binding ManualRegionWidthText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              <TextBox AutomationProperties.AutomationId="Input_ManualRegionW"
+                       Width="42" Text="{Binding ManualRegionWidthText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             </StackPanel>
             <StackPanel Margin="0,0,4,0">
               <TextBlock Text="Y" FontSize="10" Foreground="{StaticResource Brush.TextMuted}" />
-              <TextBox Width="42" Text="{Binding ManualRegionHeightText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              <TextBox AutomationProperties.AutomationId="Input_ManualRegionH"
+                       Width="42" Text="{Binding ManualRegionHeightText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             </StackPanel>
           </StackPanel>
         </StackPanel>
 
         <!-- Action Buttons -->
         <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,0,6">
-          <Button Style="{StaticResource Button.Primary}" Content="Canlı Yakala"
+          <Button AutomationProperties.AutomationId="Button_StartCapture"
+                  Style="{StaticResource Button.Primary}" Content="Canlı Yakala"
                   Command="{Binding StartCaptureCommand}" Margin="0,0,6,0" Padding="12,6" />
-          <Button Style="{StaticResource Button.Secondary}" Content="Durdur"
+          <Button AutomationProperties.AutomationId="Button_StopCapture"
+                  Style="{StaticResource Button.Secondary}" Content="Durdur"
                   Command="{Binding StopCaptureCommand}" Margin="0,0,6,0" Padding="12,6" />
-          <Button Style="{StaticResource Button.Secondary}" Content="Kare Yakala"
+          <Button AutomationProperties.AutomationId="Button_CaptureOnce"
+                  Style="{StaticResource Button.Secondary}" Content="Kare Yakala"
                   Command="{Binding CaptureOnceCommand}" Margin="0,0,6,0" Padding="10,6" />
-          <Button Style="{StaticResource Button.Secondary}" Content="OCR Çalıştır"
+          <Button AutomationProperties.AutomationId="Button_RunOcrOnce"
+                  Style="{StaticResource Button.Secondary}" Content="OCR Çalıştır"
                   Command="{Binding RunOcrOnceCommand}" Margin="0,0,6,0" Padding="10,6" />
-          <Button Style="{StaticResource Button.Secondary}" Content="Görüntüyü Kaydet"
+          <Button AutomationProperties.AutomationId="Button_SaveScreenshot"
+                  Style="{StaticResource Button.Secondary}" Content="Görüntüyü Kaydet"
                   Command="{Binding SaveScreenshotCommand}" Margin="0,0,6,0" Padding="10,6" />
-          <Button Style="{StaticResource Button.Secondary}" Content="Benchmark"
+          <Button AutomationProperties.AutomationId="Button_RunBenchmark"
+                  Style="{StaticResource Button.Secondary}" Content="Benchmark"
                   Command="{Binding RunBenchmarkCommand}" Padding="10,6" />
         </StackPanel>
       </WrapPanel>
@@ -133,7 +166,8 @@
                    Visibility="{Binding HasFramePreview, Converter={StaticResource BoolToVisibility}}">
             <Grid Width="{Binding NativeFrameWidth}" Height="{Binding NativeFrameHeight}">
               <!-- Base Captured Frame -->
-              <Image Source="{Binding FramePreviewImage}" Stretch="Fill" />
+              <Image AutomationProperties.AutomationId="Image_FramePreview"
+                     Source="{Binding FramePreviewImage}" Stretch="Fill" />
 
               <!-- Active OCR Regions (Profile Subtitles or Manual Custom Region) -->
               <ItemsControl ItemsSource="{Binding ActiveRegionBoxes}">
@@ -214,8 +248,19 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
+              <TextBlock Text="Sağlayıcı:" Foreground="{StaticResource Brush.TextSecondary}" FontSize="12" />
+              <TextBlock Grid.Column="1" AutomationProperties.AutomationId="Text_Provider"
+                         Text="{Binding ProviderName}" FontSize="12" />
+            </Grid>
+
+            <Grid Margin="0,2">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
               <TextBlock Text="Durum:" Foreground="{StaticResource Brush.TextSecondary}" FontSize="12" />
-              <TextBlock Grid.Column="1" Text="{Binding StatusText}" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource Brush.Accent}" />
+              <TextBlock Grid.Column="1" AutomationProperties.AutomationId="Text_Status"
+                         Text="{Binding StatusText}" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource Brush.Accent}" />
             </Grid>
 
             <Grid Margin="0,2">
@@ -224,7 +269,8 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <TextBlock Text="Çözünürlük:" Foreground="{StaticResource Brush.TextSecondary}" FontSize="12" />
-              <TextBlock Grid.Column="1" Text="{Binding ResolutionText}" FontSize="12" />
+              <TextBlock Grid.Column="1" AutomationProperties.AutomationId="Text_Resolution"
+                         Text="{Binding ResolutionText}" FontSize="12" />
             </Grid>
 
             <Grid Margin="0,2">
@@ -233,7 +279,8 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <TextBlock Text="Yakalama FPS:" Foreground="{StaticResource Brush.TextSecondary}" FontSize="12" />
-              <TextBlock Grid.Column="1" Text="{Binding Fps, StringFormat='{}{0:F1}'}" FontSize="12" />
+              <TextBlock Grid.Column="1" AutomationProperties.AutomationId="Text_Fps"
+                         Text="{Binding Fps, StringFormat='{}{0:F1}'}" FontSize="12" />
             </Grid>
 
             <Grid Margin="0,2">
@@ -242,7 +289,8 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <TextBlock Text="Yakalama Gecikmesi:" Foreground="{StaticResource Brush.TextSecondary}" FontSize="12" />
-              <TextBlock Grid.Column="1" Text="{Binding CaptureLatencyMs, StringFormat='{}{0:F1} ms'}" FontSize="12" />
+              <TextBlock Grid.Column="1" AutomationProperties.AutomationId="Text_CaptureLatency"
+                         Text="{Binding CaptureLatencyMs, StringFormat='{}{0:F1} ms'}" FontSize="12" />
             </Grid>
 
             <Grid Margin="0,2">
@@ -251,7 +299,18 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <TextBlock Text="OCR Gecikmesi:" Foreground="{StaticResource Brush.TextSecondary}" FontSize="12" />
-              <TextBlock Grid.Column="1" Text="{Binding OcrLatencyMs, StringFormat='{}{0:F1} ms'}" FontSize="12" />
+              <TextBlock Grid.Column="1" AutomationProperties.AutomationId="Text_OcrLatency"
+                         Text="{Binding OcrLatencyMs, StringFormat='{}{0:F1} ms'}" FontSize="12" />
+            </Grid>
+
+            <Grid Margin="0,2">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Text="Kare Tazeliği:" Foreground="{StaticResource Brush.TextSecondary}" FontSize="12" />
+              <TextBlock Grid.Column="1" AutomationProperties.AutomationId="Text_FreshFrameAge"
+                         Text="{Binding FreshFrameAgeText}" FontSize="12" Foreground="{StaticResource Brush.Accent}" />
             </Grid>
 
             <Grid Margin="0,2">
@@ -260,7 +319,8 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <TextBlock Text="Bellek (WorkingSet):" Foreground="{StaticResource Brush.TextSecondary}" FontSize="12" />
-              <TextBlock Grid.Column="1" Text="{Binding MemoryMb, StringFormat='{}{0:F1} MB'}" FontSize="12" />
+              <TextBlock Grid.Column="1" AutomationProperties.AutomationId="Text_Memory"
+                         Text="{Binding MemoryMb, StringFormat='{}{0:F1} MB'}" FontSize="12" />
             </Grid>
 
             <Grid Margin="0,2">
@@ -269,11 +329,14 @@
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <TextBlock Text="İşlenen / Atlanan Kare:" Foreground="{StaticResource Brush.TextSecondary}" FontSize="12" />
-              <TextBlock Grid.Column="1" Text="{Binding DroppedFramesCount, StringFormat='Atlanan: {0}'}" FontSize="11" Foreground="{StaticResource Brush.TextMuted}" />
+              <TextBlock Grid.Column="1" AutomationProperties.AutomationId="Text_DroppedFrames"
+                         Text="{Binding DroppedFramesCount, StringFormat='Atlanan: {0}'}" FontSize="11" Foreground="{StaticResource Brush.TextMuted}" />
             </Grid>
 
-            <TextBlock Text="{Binding LastCaptureError}" Foreground="#FF6B6B" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding LastOcrError}" Foreground="#FF6B6B" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
+            <TextBlock AutomationProperties.AutomationId="Text_LastCaptureError"
+                       Text="{Binding LastCaptureError}" Foreground="#FF6B6B" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap" />
+            <TextBlock AutomationProperties.AutomationId="Text_LastOcrError"
+                       Text="{Binding LastOcrError}" Foreground="#FF6B6B" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
 
@@ -287,8 +350,14 @@
                        Text="* Not: Bu aşamada sadece İngilizce metin tanıma yapılmaktadır. Çeviri AG-03 aşamasındadır."
                        Margin="0,8,0,0" TextWrapping="Wrap" />
 
-            <ListBox ItemsSource="{Binding RecognizedLines}" Background="Transparent" BorderThickness="0"
+            <ListBox AutomationProperties.AutomationId="List_RecognizedLines"
+                     ItemsSource="{Binding RecognizedLines}" Background="Transparent" BorderThickness="0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+              <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                  <Setter Property="AutomationProperties.Name" Value="{Binding Text}" />
+                </Style>
+              </ListBox.ItemContainerStyle>
               <ListBox.ItemTemplate>
                 <DataTemplate DataType="{x:Type vision:OcrTextLine}">
                   <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1" Padding="0,6" Margin="0,2">
@@ -314,8 +383,10 @@
     <Border Grid.Row="2" Background="{StaticResource Brush.Surface}" BorderBrush="{StaticResource Brush.Border}"
             BorderThickness="1" CornerRadius="4" Padding="12,8" Margin="0,10,0,0">
       <StackPanel>
-        <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="{StaticResource Brush.TextSecondary}" />
-        <TextBlock Text="{Binding BenchmarkSummary}" FontSize="11" Foreground="{StaticResource Brush.Accent}" Margin="0,4,0,0"
+        <TextBlock AutomationProperties.AutomationId="Text_StatusMessage"
+                   Text="{Binding StatusMessage}" FontSize="12" Foreground="{StaticResource Brush.TextSecondary}" />
+        <TextBlock AutomationProperties.AutomationId="Text_BenchmarkSummary"
+                   Text="{Binding BenchmarkSummary}" FontSize="11" Foreground="{StaticResource Brush.Accent}" Margin="0,4,0,0"
                    Visibility="{Binding HasBenchmarkSummary, Converter={StaticResource BoolToVisibility}}" />
       </StackPanel>
     </Border>

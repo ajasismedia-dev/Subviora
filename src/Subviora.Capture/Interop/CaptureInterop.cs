@@ -79,6 +79,12 @@ internal static class CaptureInterop
     internal static extern bool IsWindow(nint hWnd);
 
     [DllImport("user32.dll")]
+    internal static extern nint GetDesktopWindow();
+
+    [DllImport("user32.dll")]
+    internal static extern nint GetShellWindow();
+
+    [DllImport("user32.dll")]
     internal static extern bool IsWindowVisible(nint hWnd);
 
     [DllImport("user32.dll")]
@@ -149,23 +155,23 @@ internal static class CaptureInterop
     private static extern int CreateDirect3D11DeviceFromDXGIDevice(nint dxgiDevice, out nint graphicsDevice);
 
     [DllImport("combase.dll", PreserveSig = true)]
-    private static extern int WindowsCreateString(
+    internal static extern int WindowsCreateString(
         [MarshalAs(UnmanagedType.LPWStr)] string sourceString,
         int length,
         out nint hstring);
 
     [DllImport("combase.dll", PreserveSig = true)]
-    private static extern int WindowsDeleteString(nint hstring);
+    internal static extern int WindowsDeleteString(nint hstring);
 
     [DllImport("combase.dll", PreserveSig = true)]
-    private static extern int RoGetActivationFactory(
+    internal static extern int RoGetActivationFactory(
         nint activatableClassId,
         in Guid iid,
         out nint factory);
 
     private static readonly Guid GraphicsCaptureItemInteropIid = new("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356");
 
-    internal static GraphicsCaptureItem CreateItemForWindow(nint hWnd)
+    internal static GraphicsCaptureItem CreateItemForWindow(nint hWnd, in Guid? requestedIid = null)
     {
         if (hWnd == nint.Zero || !IsWindow(hWnd))
         {
@@ -178,6 +184,7 @@ internal static class CaptureInterop
 
         nint factoryPtr = nint.Zero;
         nint rawItem = nint.Zero;
+        GraphicsCaptureItem? item = null;
         try
         {
             var interopGuid = GraphicsCaptureItemInteropIid;
@@ -190,16 +197,17 @@ internal static class CaptureInterop
                 // IUnknown (0: QI, 1: AddRef, 2: Release) -> 3: CreateForWindow
                 var createForWindow = (delegate* unmanaged[Stdcall]<nint, nint, in Guid, out nint, int>)vtable[3];
 
-                var itemGuid = GraphicsCaptureItemIid;
+                var itemGuid = requestedIid ?? GraphicsCaptureItemIid;
                 hr = createForWindow(factoryPtr, hWnd, in itemGuid, out rawItem);
                 Marshal.ThrowExceptionForHR(hr);
             }
 
-            return WinRT.MarshalInterface<GraphicsCaptureItem>.FromAbi(rawItem);
+            item = GraphicsCaptureItem.FromAbi(rawItem);
+            return item;
         }
         finally
         {
-            if (rawItem != nint.Zero)
+            if (item is null && rawItem != nint.Zero)
             {
                 Marshal.Release(rawItem);
             }
@@ -226,6 +234,7 @@ internal static class CaptureInterop
 
         nint factoryPtr = nint.Zero;
         nint rawItem = nint.Zero;
+        GraphicsCaptureItem? item = null;
         try
         {
             var interopGuid = GraphicsCaptureItemInteropIid;
@@ -243,11 +252,12 @@ internal static class CaptureInterop
                 Marshal.ThrowExceptionForHR(hr);
             }
 
-            return WinRT.MarshalInterface<GraphicsCaptureItem>.FromAbi(rawItem);
+            item = GraphicsCaptureItem.FromAbi(rawItem);
+            return item;
         }
         finally
         {
-            if (rawItem != nint.Zero)
+            if (item is null && rawItem != nint.Zero)
             {
                 Marshal.Release(rawItem);
             }

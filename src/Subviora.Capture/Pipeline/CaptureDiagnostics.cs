@@ -4,6 +4,7 @@ namespace Subviora.Capture.Pipeline;
 
 /// <summary>
 /// Real-time capture and OCR telemetry for diagnostic monitoring.
+/// Accurately reflects session state, frame freshness, and system resources.
 /// </summary>
 public sealed record CaptureDiagnostics(
     CaptureTarget? Target,
@@ -19,7 +20,11 @@ public sealed record CaptureDiagnostics(
     long TotalFramesProcessed,
     long DroppedFramesCount,
     string? LastCaptureError = null,
-    string? LastOcrError = null)
+    string? LastOcrError = null,
+    string? ProviderName = null,
+    string? TargetWindowDescription = null,
+    double TimeSinceLastFreshFrameMs = 0.0,
+    bool IsWindowIdle = false)
 {
     public static CaptureDiagnostics Empty { get; } = new(
         Target: null,
@@ -33,5 +38,11 @@ public sealed record CaptureDiagnostics(
         MemoryWorkingSetMb: 0,
         TotalFramesCaptured: 0,
         TotalFramesProcessed: 0,
-        DroppedFramesCount: 0);
+        DroppedFramesCount: 0,
+        LastCaptureError: null,
+        LastOcrError: null,
+        ProviderName: null,
+        TargetWindowDescription: null,
+        TimeSinceLastFreshFrameMs: 0.0,
+        IsWindowIdle: false);
 }
