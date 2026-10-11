@@ -292,4 +292,18 @@ engines for accuracy, latency, memory footprint, licensing, and Windows 11 Smart
   Word Error Rate (WER), Bounding Box IoU, Latency percentiles (P50, P95, Mean), Cold Start duration,
   and memory working set delta.
 
+## ADR-021: WPF XAML Static Resource Integrity & Provider Availability Guards
+
+**Status:** Accepted (AG-02.1)
+
+**Context:** Opening the "Yakalama & OCR" page in AG-02 crashed at runtime with `System.Windows.Markup.XamlParseException: 'Button.Primary' adlı kaynak bulunamıyor.` due to a missing style in `Theme.xaml`. Furthermore, `PaddleOCR` was presented as an engine option despite native inference libraries not being bundled.
+
+**Decision:**
+- Add `Button.Primary` style in `Theme.xaml` based on `Button.Base` with accent brand colors.
+- Correct `FontFamily` in `OcrDiagnosticsView.xaml` to `{StaticResource Font.Icons}` and fix boolean visibility converters.
+- Automated static regression test `XamlResourceIntegrityTests` enforces that all `{StaticResource}` and `{DynamicResource}` keys in all desktop XAML files resolve to declared keys in `Theme.xaml`, `SharedTemplates.xaml`, or local resources.
+- Provider integrity: `PaddleOcrBenchmarkAdapter` is marked `IsAvailable = false`, does not emit simulated recognition data or fake confidence scores, and action buttons are disabled when unavailable providers are selected. `MockOcrProvider` is explicitly identified as developer simulation only.
+- Local execution limitations: Windows Code Integrity / Smart App Control enforces `0x800711C7` on unsigned development assemblies loaded by user processes; CI workflows and automated testing remain the primary verification path for regression protection.
+
+
 

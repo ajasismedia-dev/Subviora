@@ -94,18 +94,31 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
         get => _selectedOcrProvider;
         set
         {
-            if (SetProperty(ref _selectedOcrProvider, value) && value is not null)
+            if (SetProperty(ref _selectedOcrProvider, value))
             {
-                _pipeline.OcrProvider = value;
+                if (value is not null)
+                {
+                    _pipeline.OcrProvider = value;
+                }
                 OnPropertyChanged(nameof(OcrProviderAvailabilityText));
+                OnPropertyChanged(nameof(CanRunOcr));
+                OnPropertyChanged(nameof(CanRunBenchmark));
+                CommandManager.InvalidateRequerySuggested();
             }
         }
     }
 
     public string OcrProviderAvailabilityText =>
-        SelectedOcrProvider?.IsAvailable == true
-            ? "Kullanılabilir"
-            : SelectedOcrProvider?.AvailabilityMessage ?? "Kullanılamıyor";
+        SelectedOcrProvider is null
+            ? string.Empty
+            : SelectedOcrProvider.IsAvailable
+                ? (SelectedOcrProvider.Id == "mock-ocr"
+                    ? "Yalnızca test/simülasyon amaçlıdır (gerçek ekran metni tanımaz)."
+                    : "Kullanılabilir")
+                : $"Kullanılamıyor: {SelectedOcrProvider.AvailabilityMessage}";
+
+    public bool CanRunOcr => _pipeline.LatestFrame is not null && SelectedOcrProvider?.IsAvailable == true;
+    public bool CanRunBenchmark => SelectedOcrProvider?.IsAvailable == true;
 
     public IScreenCaptureProvider? SelectedCaptureProvider
     {
@@ -122,8 +135,20 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
     public ImageSource? FramePreviewImage
     {
         get => _framePreviewImage;
-        private set => SetProperty(ref _framePreviewImage, value);
+        private set
+        {
+            if (SetProperty(ref _framePreviewImage, value))
+            {
+                OnPropertyChanged(nameof(HasFramePreview));
+                OnPropertyChanged(nameof(HasNoFramePreview));
+                OnPropertyChanged(nameof(CanRunOcr));
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
     }
+
+    public bool HasFramePreview => FramePreviewImage is not null;
+    public bool HasNoFramePreview => FramePreviewImage is null;
 
     public string StatusText { get => _statusText; private set => SetProperty(ref _statusText, value); }
     public string ResolutionText { get => _resolutionText; private set => SetProperty(ref _resolutionText, value); }
@@ -137,7 +162,18 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
     public string? LastCaptureError { get => _lastCaptureError; private set => SetProperty(ref _lastCaptureError, value); }
     public string? LastOcrError { get => _lastOcrError; private set => SetProperty(ref _lastOcrError, value); }
     public string? StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
-    public string? BenchmarkSummary { get => _benchmarkSummary; private set => SetProperty(ref _benchmarkSummary, value); }
+    public string? BenchmarkSummary
+    {
+        get => _benchmarkSummary;
+        private set
+        {
+            if (SetProperty(ref _benchmarkSummary, value))
+            {
+                OnPropertyChanged(nameof(HasBenchmarkSummary));
+            }
+        }
+    }
+    public bool HasBenchmarkSummary => !string.IsNullOrWhiteSpace(BenchmarkSummary);
 
     public OcrDiagnosticsViewModel(
         IWindowDiscoveryService windowDiscovery,
@@ -169,9 +205,9 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
         StartCaptureCommand = new RelayCommand(StartCapture, () => CanStartCapture && !IsCapturing);
         StopCaptureCommand = new RelayCommand(StopCapture, () => IsCapturing);
         CaptureOnceCommand = new AsyncRelayCommand(CaptureOnceAsync, () => CanStartCapture);
-        RunOcrOnceCommand = new AsyncRelayCommand(RunOcrOnceAsync, () => _pipeline.LatestFrame is not null);
+        RunOcrOnceCommand = new AsyncRelayCommand(RunOcrOnceAsync, () => CanRunOcr);
         SaveScreenshotCommand = new AsyncRelayCommand(SaveScreenshotAsync, () => _pipeline.LatestFrame is not null);
-        RunBenchmarkCommand = new AsyncRelayCommand(RunBenchmarkAsync);
+        RunBenchmarkCommand = new AsyncRelayCommand(RunBenchmarkAsync, () => CanRunBenchmark);
 
         _pipeline.PipelineTicked += OnPipelineTicked;
     }
@@ -252,6 +288,12 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
             return;
         }
 
+        if (!SelectedOcrProvider.IsAvailable)
+        {
+            StatusMessage = $"{SelectedOcrProvider.DisplayName} kullanılamıyor: {SelectedOcrProvider.AvailabilityMessage}";
+            return;
+        }
+
         try
         {
             StatusMessage = $"{SelectedOcrProvider.DisplayName} ile OCR çalıştırılıyor...";
@@ -301,6 +343,12 @@ public sealed class OcrDiagnosticsViewModel : PageViewModel
     {
         if (SelectedOcrProvider is null)
         {
+            return;
+        }
+
+        if (!SelectedOcrProvider.IsAvailable)
+        {
+            StatusMessage = $"{SelectedOcrProvider.DisplayName} kullanılamıyor: {SelectedOcrProvider.AvailabilityMessage}";
             return;
         }
 

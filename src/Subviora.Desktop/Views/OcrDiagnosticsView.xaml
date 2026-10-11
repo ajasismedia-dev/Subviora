@@ -46,9 +46,11 @@
         <!-- OCR Provider -->
         <StackPanel Orientation="Vertical" Margin="0,0,16,6">
           <TextBlock Text="OCR Motoru" Style="{StaticResource Text.Label}" Margin="0,0,0,4" />
-          <ComboBox Width="200" ItemsSource="{Binding AvailableOcrProviders}"
+          <ComboBox Width="220" ItemsSource="{Binding AvailableOcrProviders}"
                     SelectedItem="{Binding SelectedOcrProvider, Mode=TwoWay}"
                     DisplayMemberPath="DisplayName" />
+          <TextBlock Text="{Binding OcrProviderAvailabilityText}" FontSize="11" Margin="0,4,0,0"
+                     Foreground="{StaticResource Brush.TextMuted}" MaxWidth="220" TextWrapping="Wrap" />
         </StackPanel>
 
         <!-- Action Buttons -->
@@ -84,8 +86,8 @@
         <Grid>
           <!-- Placeholder when no frame -->
           <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
-                      Visibility="{Binding FramePreviewImage, Converter={x:Null}}">
-            <TextBlock Text="&#xE722;" FontFamily="{StaticResource Font.Icon}" FontSize="48"
+                      Visibility="{Binding HasNoFramePreview, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="&#xE722;" FontFamily="{StaticResource Font.Icons}" FontSize="48"
                        HorizontalAlignment="Center" Foreground="{StaticResource Brush.TextMuted}" />
             <TextBlock Text="Henüz bir oyun karesi yakalanmadı." Style="{StaticResource Text.Label}"
                        HorizontalAlignment="Center" Margin="0,10,0,0" />
@@ -95,7 +97,8 @@
           </StackPanel>
 
           <!-- Captured Image Preview -->
-          <Image Source="{Binding FramePreviewImage}" Stretch="Uniform" />
+          <Image Source="{Binding FramePreviewImage}" Stretch="Uniform"
+                 Visibility="{Binding HasFramePreview, Converter={StaticResource BoolToVisibility}}" />
 
           <!-- Notice Overlay Pill -->
           <Border VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10"
@@ -226,7 +229,7 @@
       <StackPanel>
         <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="{StaticResource Brush.TextSecondary}" />
         <TextBlock Text="{Binding BenchmarkSummary}" FontSize="11" Foreground="{StaticResource Brush.Accent}" Margin="0,4,0,0"
-                   Visibility="{Binding BenchmarkSummary, Converter={x:Null}}" />
+                   Visibility="{Binding HasBenchmarkSummary, Converter={StaticResource BoolToVisibility}}" />
       </StackPanel>
     </Border>
   </Grid>

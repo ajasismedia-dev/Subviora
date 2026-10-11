@@ -187,6 +187,40 @@
 
   <Style x:Key="Button.Secondary" TargetType="Button" BasedOn="{StaticResource Button.Base}" />
 
+  <Style x:Key="Button.Primary" TargetType="Button" BasedOn="{StaticResource Button.Base}">
+    <Setter Property="Foreground" Value="{StaticResource Brush.OnAccent}" />
+    <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Root"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="6"
+                  Padding="{TemplateBinding Padding}"
+                  SnapsToDevicePixels="True">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.AccentPressed}" />
+              <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.AccentPressed}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Root" Property="Opacity" Value="0.85" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Root" Property="Opacity" Value="0.45" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- ===== Scrollbars (thin, unobtrusive) ===== -->
   <Style x:Key="ScrollBarThumb" TargetType="Thumb">
     <Setter Property="OverridesDefaultStyle" Value="True" />
