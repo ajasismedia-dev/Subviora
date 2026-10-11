@@ -27,7 +27,7 @@
         <StackPanel Orientation="Vertical" Margin="0,0,16,6">
           <TextBlock Text="Hedef Pencere" Style="{StaticResource Text.Label}" Margin="0,0,0,4" />
           <StackPanel Orientation="Horizontal">
-            <ComboBox Width="280" ItemsSource="{Binding AvailableWindows}"
+            <ComboBox Width="260" ItemsSource="{Binding AvailableWindows}"
                       SelectedItem="{Binding SelectedWindow, Mode=TwoWay}"
                       DisplayMemberPath="DisplayText" />
             <Button Style="{StaticResource Button.Secondary}" Content="Yenile"
@@ -38,7 +38,7 @@
         <!-- Capture Provider -->
         <StackPanel Orientation="Vertical" Margin="0,0,16,6">
           <TextBlock Text="Yakalama Sağlayıcısı" Style="{StaticResource Text.Label}" Margin="0,0,0,4" />
-          <ComboBox Width="180" ItemsSource="{Binding AvailableCaptureProviders}"
+          <ComboBox Width="160" ItemsSource="{Binding AvailableCaptureProviders}"
                     SelectedItem="{Binding SelectedCaptureProvider, Mode=TwoWay}"
                     DisplayMemberPath="Id" />
         </StackPanel>
@@ -46,11 +46,43 @@
         <!-- OCR Provider -->
         <StackPanel Orientation="Vertical" Margin="0,0,16,6">
           <TextBlock Text="OCR Motoru" Style="{StaticResource Text.Label}" Margin="0,0,0,4" />
-          <ComboBox Width="220" ItemsSource="{Binding AvailableOcrProviders}"
+          <ComboBox Width="200" ItemsSource="{Binding AvailableOcrProviders}"
                     SelectedItem="{Binding SelectedOcrProvider, Mode=TwoWay}"
                     DisplayMemberPath="DisplayName" />
           <TextBlock Text="{Binding OcrProviderAvailabilityText}" FontSize="11" Margin="0,4,0,0"
-                     Foreground="{StaticResource Brush.TextMuted}" MaxWidth="220" TextWrapping="Wrap" />
+                     Foreground="{StaticResource Brush.TextMuted}" MaxWidth="200" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- OCR Region Selection -->
+        <StackPanel Orientation="Vertical" Margin="0,0,16,6">
+          <TextBlock Text="OCR Bölgesi" Style="{StaticResource Text.Label}" Margin="0,0,0,4" />
+          <ComboBox Width="200" ItemsSource="{Binding AvailableRegionModes}"
+                    SelectedItem="{Binding SelectedRegionMode, Mode=TwoWay}"
+                    DisplayMemberPath="DisplayName" />
+        </StackPanel>
+
+        <!-- Manual Region Coordinates (Visible when Manual Custom mode selected) -->
+        <StackPanel Orientation="Vertical" Margin="0,0,16,6"
+                    Visibility="{Binding IsManualRegionVisible, Converter={StaticResource BoolToVisibility}}">
+          <TextBlock Text="Özel Koordinatlar (0.0 - 1.0)" Style="{StaticResource Text.Label}" Margin="0,0,0,4" />
+          <StackPanel Orientation="Horizontal">
+            <StackPanel Margin="0,0,4,0">
+              <TextBlock Text="X" FontSize="10" Foreground="{StaticResource Brush.TextMuted}" />
+              <TextBox Width="42" Text="{Binding ManualRegionXText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+            <StackPanel Margin="0,0,4,0">
+              <TextBlock Text="Y" FontSize="10" Foreground="{StaticResource Brush.TextMuted}" />
+              <TextBox Width="42" Text="{Binding ManualRegionYText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+            <StackPanel Margin="0,0,4,0">
+              <TextBlock Text="G" FontSize="10" Foreground="{StaticResource Brush.TextMuted}" />
+              <TextBox Width="42" Text="{Binding ManualRegionWidthText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+            <StackPanel Margin="0,0,4,0">
+              <TextBlock Text="Y" FontSize="10" Foreground="{StaticResource Brush.TextMuted}" />
+              <TextBox Width="42" Text="{Binding ManualRegionHeightText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+          </StackPanel>
         </StackPanel>
 
         <!-- Action Buttons -->
@@ -96,9 +128,64 @@
                        HorizontalAlignment="Center" Margin="0,4,0,0" />
           </StackPanel>
 
-          <!-- Captured Image Preview -->
-          <Image Source="{Binding FramePreviewImage}" Stretch="Uniform"
-                 Visibility="{Binding HasFramePreview, Converter={StaticResource BoolToVisibility}}" />
+          <!-- Captured Image Preview & Overlays (Scaled together via Viewbox) -->
+          <Viewbox Stretch="Uniform"
+                   Visibility="{Binding HasFramePreview, Converter={StaticResource BoolToVisibility}}">
+            <Grid Width="{Binding NativeFrameWidth}" Height="{Binding NativeFrameHeight}">
+              <!-- Base Captured Frame -->
+              <Image Source="{Binding FramePreviewImage}" Stretch="Fill" />
+
+              <!-- Active OCR Regions (Profile Subtitles or Manual Custom Region) -->
+              <ItemsControl ItemsSource="{Binding ActiveRegionBoxes}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <Canvas />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                  <Style TargetType="ContentPresenter">
+                    <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                    <Setter Property="Canvas.Top" Value="{Binding Top}" />
+                  </Style>
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid Width="{Binding Width}" Height="{Binding Height}">
+                      <Rectangle Stroke="#A3E635" StrokeThickness="2" StrokeDashArray="4 2" />
+                      <Border Background="#CC15171A" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="4,2" Margin="2">
+                        <TextBlock Text="{Binding Label}" Foreground="#A3E635" FontSize="11" FontWeight="SemiBold" />
+                      </Border>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <!-- Detected OCR Text Bounding Boxes -->
+              <ItemsControl ItemsSource="{Binding DetectedBoundingBoxes}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <Canvas />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                  <Style TargetType="ContentPresenter">
+                    <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                    <Setter Property="Canvas.Top" Value="{Binding Top}" />
+                  </Style>
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid Width="{Binding Width}" Height="{Binding Height}">
+                      <Rectangle Stroke="#E3B341" StrokeThickness="1.5" />
+                      <Border Background="#E615171A" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="3,1" Margin="1">
+                        <TextBlock Text="{Binding Text}" Foreground="#FFE6E8EB" FontSize="10" />
+                      </Border>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Grid>
+          </Viewbox>
 
           <!-- Notice Overlay Pill -->
           <Border VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10"
@@ -209,7 +296,7 @@
                       <TextBlock Text="{Binding Text}" Foreground="{StaticResource Brush.TextPrimary}" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap" />
                       <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                         <Border Background="{StaticResource Brush.SurfaceRaised}" CornerRadius="2" Padding="4,1" Margin="0,0,6,0">
-                          <TextBlock Text="{Binding Confidence, StringFormat='Güven: %{0:F0}'}" FontSize="10" Foreground="{StaticResource Brush.Accent}" />
+                          <TextBlock Text="{Binding ConfidenceText}" FontSize="10" Foreground="{StaticResource Brush.Accent}" />
                         </Border>
                         <TextBlock Text="{Binding Bounds, StringFormat='Konum: {0}'}" FontSize="10" Foreground="{StaticResource Brush.TextMuted}" />
                       </StackPanel>

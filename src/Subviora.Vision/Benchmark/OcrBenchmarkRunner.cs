@@ -13,6 +13,7 @@ public sealed class OcrBenchmarkRunner
         IOcrProvider provider,
         IReadOnlyList<OcrBenchmarkSample> samples,
         int warmIterations = 3,
+        double? captureLatencyMs = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(provider);
@@ -127,6 +128,9 @@ public sealed class OcrBenchmarkRunner
         var validWers = itemResults.Where(r => r.WordErrorRate.HasValue).Select(r => r.WordErrorRate!.Value).ToList();
         var validIous = itemResults.Where(r => r.BoxIoU.HasValue).Select(r => r.BoxIoU!.Value).ToList();
 
+        bool hasVerifiedGroundTruth = samples.Any(s => !string.IsNullOrEmpty(s.ExpectedText));
+        double? endToEndLatencyMs = captureLatencyMs.HasValue ? Math.Round(captureLatencyMs.Value + meanLatency, 1) : null;
+
         return new OcrBenchmarkReport(
             ProviderId: provider.Id,
             ProviderDisplayName: provider.DisplayName,
@@ -141,6 +145,10 @@ public sealed class OcrBenchmarkRunner
             AverageIoU: validIous.Count > 0 ? Math.Round(validIous.Average(), 4) : null,
             MemoryDeltaMb: Math.Round(memoryDeltaMb, 2),
             TotalDuration: totalSw.Elapsed,
-            ItemResults: itemResults);
+            ItemResults: itemResults,
+            WarmRunsCount: warmLatencies.Count,
+            CaptureLatencyMs: captureLatencyMs.HasValue ? Math.Round(captureLatencyMs.Value, 1) : null,
+            EndToEndLatencyMs: endToEndLatencyMs,
+            HasVerifiedGroundTruth: hasVerifiedGroundTruth);
     }
 }

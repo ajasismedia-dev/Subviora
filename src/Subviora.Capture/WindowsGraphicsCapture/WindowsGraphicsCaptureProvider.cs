@@ -72,12 +72,29 @@ public sealed class WindowsGraphicsCaptureProvider : IScreenCaptureProvider
             var capturedFrame = await tcs.Task.ConfigureAwait(false);
             using (capturedFrame)
             {
+                lock (_syncLock)
+                {
+                    if (_item is not null && _framePool is not null && _device is not null)
+                    {
+                        var contentSize = capturedFrame.ContentSize;
+                        if (contentSize.Width > 0 && contentSize.Height > 0 &&
+                            (contentSize.Width != _item.Size.Width || contentSize.Height != _item.Size.Height))
+                        {
+                            _framePool.Recreate(
+                                _device,
+                                DirectXPixelFormat.B8G8R8A8UIntNormalized,
+                                1,
+                                contentSize);
+                        }
+                    }
+                }
+
                 return await ExtractCpuFrameAsync(capturedFrame).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new TimeoutException("Timed out waiting for frame from Windows Graphics Capture. The game window may be idle or occluded.");
+            throw new TimeoutException("Windows Graphics Capture karesi zaman aşımına uğradı. Oyun penceresi boşta, simge durumunda veya gizlenmiş olabilir.");
         }
         finally
         {
@@ -108,7 +125,14 @@ public sealed class WindowsGraphicsCaptureProvider : IScreenCaptureProvider
                 _item.Size);
 
             _session = _framePool.CreateCaptureSession(_item);
-            _session.IsCursorCaptureEnabled = false;
+            try
+            {
+                _session.IsCursorCaptureEnabled = false;
+            }
+            catch
+            {
+                // IsCursorCaptureEnabled is supported on Win10 2004+; ignore if driver/build rejects it
+            }
 
             _session.StartCapture();
             _activeWindowHandle = windowHandle;

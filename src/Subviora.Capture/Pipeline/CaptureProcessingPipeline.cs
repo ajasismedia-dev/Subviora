@@ -33,6 +33,10 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
     private double _currentFps;
 
     private DateTimeOffset _lastOcrTimestamp = DateTimeOffset.MinValue;
+    private Task? _activeOcrTask;
+    private TimeSpan _lastCpuTotalTime;
+    private DateTimeOffset _lastCpuSampleTime = DateTimeOffset.UtcNow;
+    private double _currentCpuPercent;
     private bool _isDisposed;
 
     public IScreenCaptureProvider CaptureProvider { get; set; }
@@ -89,9 +93,19 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
                 // Ignore task cancellation wait exceptions
             }
 
+            try
+            {
+                _activeOcrTask?.Wait(TimeSpan.FromSeconds(2));
+            }
+            catch
+            {
+                // Ignore OCR cancellation wait exceptions
+            }
+
             _pipelineCts.Dispose();
             _pipelineCts = null;
             _pipelineTask = null;
+            _activeOcrTask = null;
         }
     }
 
@@ -219,7 +233,7 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
 
         _lastOcrTimestamp = now;
 
-        _ = Task.Run(async () =>
+        _activeOcrTask = Task.Run(async () =>
         {
             try
             {
@@ -233,15 +247,26 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
                 _latestOcrResult = result;
                 Interlocked.Increment(ref _totalFramesProcessed);
             }
+            catch (OperationCanceledException)
+            {
+                // Cancellation expected when capture stops
+            }
             catch (Exception ex)
             {
                 _lastOcrError = ex.Message;
             }
             finally
             {
-                _ocrSemaphore.Release();
+                try
+                {
+                    _ocrSemaphore.Release();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Semaphore disposed on teardown
+                }
             }
-        }, cancellationToken);
+        }, CancellationToken.None);
     }
 
     private void UpdateFps()
@@ -255,6 +280,33 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
         }
     }
 
+    private double MeasureCpuUsage(Process proc)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var elapsed = (now - _lastCpuSampleTime).TotalMilliseconds;
+        if (elapsed < 300)
+        {
+            return _currentCpuPercent;
+        }
+
+        try
+        {
+            var totalTime = proc.TotalProcessorTime;
+            var cpuUsedMs = (totalTime - _lastCpuTotalTime).TotalMilliseconds;
+            _lastCpuTotalTime = totalTime;
+            _lastCpuSampleTime = now;
+
+            double cpuPercent = (cpuUsedMs / (elapsed * Environment.ProcessorCount)) * 100.0;
+            _currentCpuPercent = Math.Clamp(Math.Round(cpuPercent, 1), 0.0, 100.0);
+        }
+        catch
+        {
+            // Ignore access errors
+        }
+
+        return _currentCpuPercent;
+    }
+
     public CaptureDiagnostics CollectDiagnostics()
     {
         double cpuPercent = 0.0;
@@ -264,6 +316,7 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
         {
             using var proc = Process.GetCurrentProcess();
             memMb = proc.WorkingSet64 / (1024.0 * 1024.0);
+            cpuPercent = MeasureCpuUsage(proc);
         }
         catch
         {
@@ -303,6 +356,10 @@ public sealed class CaptureProcessingPipeline : IAsyncDisposable
             if (CaptureProvider is IAsyncDisposable asyncDisposable)
             {
                 await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+            }
+            else if (CaptureProvider is IDisposable disposable)
+            {
+                disposable.Dispose();
             }
 
             _ocrSemaphore.Dispose();

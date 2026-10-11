@@ -54,6 +54,22 @@ public sealed class OcrResultNormalizationTests
     }
 
     [Fact]
+    public void OcrConfidence_WhenNull_ReportsBelirtilmiyorInConfidenceText()
+    {
+        var line = new OcrTextLine("Test", new NormalizedRect(0, 0, 1, 1), Confidence: null);
+        Assert.Null(line.Confidence);
+        Assert.Equal("Güven: Belirtilmiyor", line.ConfidenceText);
+    }
+
+    [Fact]
+    public void OcrConfidence_WhenValuePresent_ReportsPercentageInConfidenceText()
+    {
+        var line = new OcrTextLine("Test", new NormalizedRect(0, 0, 1, 1), Confidence: 0.92);
+        Assert.NotNull(line.Confidence);
+        Assert.Equal("Güven: %92", line.ConfidenceText);
+    }
+
+    [Fact]
     public void BoundingBoxes_AreNormalizedInUnitRange()
     {
         var bounds = new NormalizedRect(0.15, 0.82, 0.70, 0.12);

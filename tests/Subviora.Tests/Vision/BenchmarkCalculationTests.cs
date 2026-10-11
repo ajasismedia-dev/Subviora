@@ -127,5 +127,33 @@ public sealed class BenchmarkCalculationTests
         Assert.True(report.P95LatencyMs >= 0);
         Assert.Equal(0.0, report.AverageCer); // Mock returns exact string
         Assert.Equal(0.0, report.AverageWer);
+        Assert.True(report.HasVerifiedGroundTruth);
+    }
+
+    [Fact]
+    public async Task OcrBenchmarkRunner_WhenNoGroundTruthProvided_DoesNotFabricateAccuracyMetrics()
+    {
+        var mockProvider = new MockOcrProvider { LatencyMs = 2 };
+        var frame = CapturedFrame.CreateEmpty(640, 480);
+        var samples = new List<OcrBenchmarkSample>
+        {
+            new("live_frame", frame, ExpectedText: null, ExpectedRegions: [new NormalizedRect(0.1, 0.8, 0.8, 0.1)])
+        };
+
+        var report = await OcrBenchmarkRunner.RunBenchmarkAsync(
+            mockProvider,
+            samples,
+            warmIterations: 2,
+            captureLatencyMs: 14.5,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.NotNull(report);
+        Assert.False(report.HasVerifiedGroundTruth);
+        Assert.Null(report.AverageCer);
+        Assert.Null(report.AverageWer);
+        Assert.NotNull(report.CaptureLatencyMs);
+        Assert.Equal(14.5, report.CaptureLatencyMs.Value);
+        Assert.NotNull(report.EndToEndLatencyMs);
+        Assert.True(report.EndToEndLatencyMs.Value >= 14.5);
     }
 }

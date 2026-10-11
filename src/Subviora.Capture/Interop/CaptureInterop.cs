@@ -148,14 +148,117 @@ internal static class CaptureInterop
     [DllImport("d3d11.dll", PreserveSig = true)]
     private static extern int CreateDirect3D11DeviceFromDXGIDevice(nint dxgiDevice, out nint graphicsDevice);
 
+    [DllImport("combase.dll", PreserveSig = true)]
+    private static extern int WindowsCreateString(
+        [MarshalAs(UnmanagedType.LPWStr)] string sourceString,
+        int length,
+        out nint hstring);
+
+    [DllImport("combase.dll", PreserveSig = true)]
+    private static extern int WindowsDeleteString(nint hstring);
+
+    [DllImport("combase.dll", PreserveSig = true)]
+    private static extern int RoGetActivationFactory(
+        nint activatableClassId,
+        in Guid iid,
+        out nint factory);
+
+    private static readonly Guid GraphicsCaptureItemInteropIid = new("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356");
+
     internal static GraphicsCaptureItem CreateItemForWindow(nint hWnd)
     {
-        var factory = WinRT.CastExtensions.As<IGraphicsCaptureItemInterop>(
-            WinRT.ActivationFactory.Get("Windows.Graphics.Capture.GraphicsCaptureItem"));
-        var iid = GraphicsCaptureItemIid;
-        int hr = factory.CreateForWindow(hWnd, in iid, out nint raw);
+        if (hWnd == nint.Zero || !IsWindow(hWnd))
+        {
+            throw new ArgumentException($"Geçersiz veya kapatılmış pencere tanıtıcısı (HWND: 0x{hWnd:X8}).", nameof(hWnd));
+        }
+
+        const string className = "Windows.Graphics.Capture.GraphicsCaptureItem";
+        int hr = WindowsCreateString(className, className.Length, out nint hstringClassId);
         Marshal.ThrowExceptionForHR(hr);
-        return WinRT.MarshalInterface<GraphicsCaptureItem>.FromAbi(raw);
+
+        nint factoryPtr = nint.Zero;
+        nint rawItem = nint.Zero;
+        try
+        {
+            var interopGuid = GraphicsCaptureItemInteropIid;
+            hr = RoGetActivationFactory(hstringClassId, in interopGuid, out factoryPtr);
+            Marshal.ThrowExceptionForHR(hr);
+
+            unsafe
+            {
+                nint* vtable = *(nint**)factoryPtr;
+                // IUnknown (0: QI, 1: AddRef, 2: Release) -> 3: CreateForWindow
+                var createForWindow = (delegate* unmanaged[Stdcall]<nint, nint, in Guid, out nint, int>)vtable[3];
+
+                var itemGuid = GraphicsCaptureItemIid;
+                hr = createForWindow(factoryPtr, hWnd, in itemGuid, out rawItem);
+                Marshal.ThrowExceptionForHR(hr);
+            }
+
+            return WinRT.MarshalInterface<GraphicsCaptureItem>.FromAbi(rawItem);
+        }
+        finally
+        {
+            if (rawItem != nint.Zero)
+            {
+                Marshal.Release(rawItem);
+            }
+
+            if (factoryPtr != nint.Zero)
+            {
+                Marshal.Release(factoryPtr);
+            }
+
+            _ = WindowsDeleteString(hstringClassId);
+        }
+    }
+
+    internal static GraphicsCaptureItem CreateItemForMonitor(nint hMonitor)
+    {
+        if (hMonitor == nint.Zero)
+        {
+            throw new ArgumentException("Monitör tanıtıcısı sıfır olamaz.", nameof(hMonitor));
+        }
+
+        const string className = "Windows.Graphics.Capture.GraphicsCaptureItem";
+        int hr = WindowsCreateString(className, className.Length, out nint hstringClassId);
+        Marshal.ThrowExceptionForHR(hr);
+
+        nint factoryPtr = nint.Zero;
+        nint rawItem = nint.Zero;
+        try
+        {
+            var interopGuid = GraphicsCaptureItemInteropIid;
+            hr = RoGetActivationFactory(hstringClassId, in interopGuid, out factoryPtr);
+            Marshal.ThrowExceptionForHR(hr);
+
+            unsafe
+            {
+                nint* vtable = *(nint**)factoryPtr;
+                // IUnknown (0: QI, 1: AddRef, 2: Release) -> 3: CreateForWindow, 4: CreateForMonitor
+                var createForMonitor = (delegate* unmanaged[Stdcall]<nint, nint, in Guid, out nint, int>)vtable[4];
+
+                var itemGuid = GraphicsCaptureItemIid;
+                hr = createForMonitor(factoryPtr, hMonitor, in itemGuid, out rawItem);
+                Marshal.ThrowExceptionForHR(hr);
+            }
+
+            return WinRT.MarshalInterface<GraphicsCaptureItem>.FromAbi(rawItem);
+        }
+        finally
+        {
+            if (rawItem != nint.Zero)
+            {
+                Marshal.Release(rawItem);
+            }
+
+            if (factoryPtr != nint.Zero)
+            {
+                Marshal.Release(factoryPtr);
+            }
+
+            _ = WindowsDeleteString(hstringClassId);
+        }
     }
 
     internal static IDirect3DDevice CreateDirect3DDevice()

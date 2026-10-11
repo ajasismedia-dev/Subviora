@@ -129,4 +129,48 @@ public sealed class PipelineTests
         // Calling start on disposed pipeline should throw ObjectDisposedException
         Assert.Throws<ObjectDisposedException>(() => pipeline.Start(target));
     }
+
+    [Fact]
+    public async Task Pipeline_PassesConfiguredOcrRegions_ToOcrRequest()
+    {
+        var capture = new FastMockCaptureProvider();
+        OcrRequest? capturedRequest = null;
+
+        var mockOcr = new CapturingMockOcrProvider(req => capturedRequest = req);
+        var pipeline = new CaptureProcessingPipeline(capture, mockOcr);
+
+        var customRegion = new NormalizedRect(0.2, 0.75, 0.6, 0.2);
+        pipeline.OcrRegions = [customRegion];
+
+        var target = new CaptureTarget(new nint(999), 1004);
+        var frame = await pipeline.CaptureOnceAsync(target, TestContext.Current.CancellationToken);
+
+        // Run OCR tick
+        pipeline.Start(target);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
+        pipeline.Stop();
+
+        Assert.NotNull(capturedRequest);
+        Assert.Single(capturedRequest.Regions);
+        Assert.Equal(customRegion, capturedRequest.Regions[0]);
+
+        await pipeline.DisposeAsync();
+    }
+
+    private sealed class CapturingMockOcrProvider : IOcrProvider
+    {
+        private readonly Action<OcrRequest> _onRequest;
+        public CapturingMockOcrProvider(Action<OcrRequest> onRequest) => _onRequest = onRequest;
+
+        public string Id => "capturing-ocr";
+        public string DisplayName => "Capturing Mock OCR";
+        public bool IsAvailable => true;
+        public string? AvailabilityMessage => null;
+
+        public Task<OcrResult> RecognizeAsync(OcrRequest request, CancellationToken cancellationToken = default)
+        {
+            _onRequest(request);
+            return Task.FromResult(new OcrResult([new OcrTextLine("captured", new NormalizedRect(0, 0, 1, 1), 1.0)]));
+        }
+    }
 }

@@ -12,8 +12,16 @@ public sealed record OcrRequest(CapturedFrame Frame, IReadOnlyList<NormalizedRec
 /// <summary>A line of text recognised by an OCR provider.</summary>
 /// <param name="Text">Recognised text.</param>
 /// <param name="Bounds">Line bounds in normalized frame coordinates.</param>
-/// <param name="Confidence">Provider confidence in the range [0, 1].</param>
-public sealed record OcrTextLine(string Text, NormalizedRect Bounds, double Confidence);
+/// <param name="Confidence">Optional provider confidence in the range [0, 1]. Null if the provider does not expose confidence (e.g. Windows OCR).</param>
+public sealed record OcrTextLine(string Text, NormalizedRect Bounds, double? Confidence = null)
+{
+    /// <summary>
+    /// Formatted confidence string for UI and logging. Returns "Belirtilmiyor" when provider does not expose confidence.
+    /// </summary>
+    public string ConfidenceText => Confidence.HasValue
+        ? $"Güven: %{(int)Math.Round(Confidence.Value * 100):D}"
+        : "Güven: Belirtilmiyor";
+}
 
 /// <summary>Result of an OCR pass.</summary>
 public sealed record OcrResult(IReadOnlyList<OcrTextLine> Lines)

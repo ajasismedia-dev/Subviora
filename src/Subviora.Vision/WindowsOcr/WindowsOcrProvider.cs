@@ -131,7 +131,7 @@ public sealed class WindowsOcrProvider : IOcrProvider
                 double normH = Math.Clamp((localH / croppedFrame.Height) * region.Height, 0.001, 1.0 - normY);
 
                 var bounds = new NormalizedRect(normX, normY, normW, normH);
-                recognizedLines.Add(new OcrTextLine(line.Text.Trim(), bounds, Confidence: 0.95));
+                recognizedLines.Add(new OcrTextLine(line.Text.Trim(), bounds, Confidence: null));
             }
         }
 

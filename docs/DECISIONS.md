@@ -302,8 +302,41 @@ engines for accuracy, latency, memory footprint, licensing, and Windows 11 Smart
 - Add `Button.Primary` style in `Theme.xaml` based on `Button.Base` with accent brand colors.
 - Correct `FontFamily` in `OcrDiagnosticsView.xaml` to `{StaticResource Font.Icons}` and fix boolean visibility converters.
 - Automated static regression test `XamlResourceIntegrityTests` enforces that all `{StaticResource}` and `{DynamicResource}` keys in all desktop XAML files resolve to declared keys in `Theme.xaml`, `SharedTemplates.xaml`, or local resources.
-- Provider integrity: `PaddleOcrBenchmarkAdapter` is marked `IsAvailable = false`, does not emit simulated recognition data or fake confidence scores, and action buttons are disabled when unavailable providers are selected. `MockOcrProvider` is explicitly identified as developer simulation only.
 - Local execution limitations: Windows Code Integrity / Smart App Control enforces `0x800711C7` on unsigned development assemblies loaded by user processes; CI workflows and automated testing remain the primary verification path for regression protection.
+
+## ADR-022: Windows Graphics Capture COM Interop Repair, OCR Diagnostic Regions & Confidence Integrity
+
+**Status:** Accepted (AG-02.2)
+
+**Context:**
+1. Windows Graphics Capture (WGC) failed during `CreateItemForWindow` with an invalid WinRT object cast exception when casting `IActivationFactory` to `IGraphicsCaptureItemInterop`. In CsWinRT (.NET 10 Windows SDK), `CastExtensions.As<T>` only works for projected WinRT interfaces, not unprojected native COM (`IUnknown`) interop interfaces.
+2. Windows OCR engine (`Windows.Media.Ocr.OcrEngine`) does not expose confidence scores in its WinRT API. The previous implementation hardcoded a 0.95 confidence score, which violated diagnostic truthfulness.
+3. OCR was processing full frames by default, recognizing game HUD and menu UI elements instead of isolating subtitle regions.
+4. Benchmarking on empty frames with synthetic hardcoded text claimed 100% accuracy without evaluating real pixels.
+
+**Decision:**
+- **WGC COM Interop Repair:**
+  - Query the activation factory for `"Windows.Graphics.Capture.GraphicsCaptureItem"` directly via `RoGetActivationFactory` (`combase.dll`) with interface GUID `3628E81B-3CAC-4C60-B7F4-23CE0E0C3356` (`IGraphicsCaptureItemInterop`).
+  - Invoke `CreateForWindow` (vtable slot 3) and `CreateForMonitor` (vtable slot 4) directly via unmanaged stdcall function pointers with HRESULT validation.
+  - Release unmanaged COM pointers in `finally` blocks via `Marshal.Release`.
+  - Wrap the resulting native `IInspectable` pointer into a managed `GraphicsCaptureItem` using `WinRT.MarshalInterface<GraphicsCaptureItem>.FromAbi(rawItem)`.
+  - Handle window resizing dynamically using `_framePool.Recreate(...)`.
+- **Diagnostic OCR Region Controls:**
+  - Implement 3 region modes: `FullFrame`, `ProfileSubtitles` (resolving subtitle bounds from the matching game profile or universal profile), and `ManualCustom` (editable normalized coordinates `[0.0, 1.0]`).
+  - Regions apply immediately to `CaptureProcessingPipeline.OcrRegions` without requiring an application restart.
+  - Frame preview uses a WPF `Viewbox` + `Grid` coordinate alignment container sized to `NativeFrameWidth` x `NativeFrameHeight`, guaranteeing pixel-perfect scaling of dashed active region overlays and recognized text bounding boxes.
+- **Confidence Model Integrity:**
+  - `OcrTextLine.Confidence` changed to `double?`.
+  - Windows OCR explicitly reports `Confidence = null` and renders "Güven: Belirtilmiyor" in the UI. Fake 95%, 0%, or 100% scores are prohibited.
+  - Tesseract preserves and reports real confidence scores from `PageIterator.GetConfidence()`.
+- **Benchmark Realism & Metric Separation:**
+  - Benchmarks execute against real captured frame pixels from `_pipeline.LatestFrame`.
+  - CER and WER are computed only when verified ground-truth text is supplied; for live frame performance tests, CER/WER remain `null` and `HasVerifiedGroundTruth = false`.
+  - Report separates capture latency, OCR recognition latency, cold start, warm run mean/P50/P95, and total end-to-end latency.
+- **Pipeline Reliability:**
+  - Track in-flight `_activeOcrTask` in `CaptureProcessingPipeline` and await completion in `Stop()` to prevent orphan background tasks referencing disposed resources.
+  - Measure CPU usage percentage accurately via `Process.TotalProcessorTime` differentials.
+
 
 
 
