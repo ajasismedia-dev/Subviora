@@ -50,4 +50,35 @@ internal static class TestFiles
           "subtitleRegions": [ { "id": "bottom", "x": 0.1, "y": 0.8, "width": 0.8, "height": 0.15 } ]
         }
         """;
+
+    /// <summary>A minimal valid schema v1 partial override.</summary>
+    public static string ValidOverrideJson(
+        string gameId = "test-game",
+        string? displayName = null,
+        string? targetProfileVersion = null,
+        double? fontScale = null)
+    {
+        var props = new List<string>
+        {
+            "\"schemaVersion\": 1",
+            $"\"gameId\": \"{gameId}\"",
+        };
+
+        if (displayName is not null)
+        {
+            props.Add($"\"displayName\": \"{displayName}\"");
+        }
+
+        if (targetProfileVersion is not null)
+        {
+            props.Add($"\"targetProfileVersion\": \"{targetProfileVersion}\"");
+        }
+
+        if (fontScale.HasValue)
+        {
+            props.Add($"\"overlay\": {{ \"fontScale\": {fontScale.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)} }}");
+        }
+
+        return "{\n  " + string.Join(",\n  ", props) + "\n}";
+    }
 }

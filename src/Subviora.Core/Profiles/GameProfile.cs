@@ -31,8 +31,25 @@ public enum OverlayAnchor
     TopCenter = 2,
 }
 
+/// <summary>Operation to perform on a profile region when applying an override.</summary>
+public enum RegionOverrideOperation
+{
+    /// <summary>Replaces the region if it exists, or adds it if it does not.</summary>
+    Replace = 0,
+
+    /// <summary>Removes the region with the specified ID from the profile.</summary>
+    Remove = 1,
+}
+
 /// <summary>A named region of the game client area.</summary>
 public sealed record ProfileRegion(string Id, NormalizedRect Bounds, string? Description = null);
+
+/// <summary>An individual region customization within a profile override.</summary>
+public sealed record ProfileRegionOverride(
+    string Id,
+    RegionOverrideOperation Operation = RegionOverrideOperation.Replace,
+    NormalizedRect? Bounds = null,
+    string? Description = null);
 
 /// <summary>
 /// Describes how coordinates in the profile were authored. All region coordinates are normalized
@@ -90,11 +107,20 @@ public sealed record GameProfile
     /// <summary>File the profile was loaded from, if any. Set by the loader.</summary>
     public string? SourcePath { get; init; }
 
-    /// <summary>Case-insensitive match against the executable file name (directory components are ignored).</summary>
+    /// <summary>Whether this profile is a layered user override merged onto a built-in profile.</summary>
+    public bool IsUserOverride { get; init; }
+
+    /// <summary>Version of the built-in base profile this override layered onto, if any.</summary>
+    public string? BaseProfileVersion { get; init; }
+
+    /// <summary>Whether this profile is a universal fallback matching any executable (*).</summary>
+    public bool IsUniversal => Executables.Any(e => e == "*");
+
+    /// <summary>Case-insensitive match against the executable file name (directory components are ignored). Supports universal wildcard (*).</summary>
     public bool MatchesExecutable(string executablePathOrName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(executablePathOrName);
         var fileName = Path.GetFileName(executablePathOrName);
-        return Executables.Any(e => string.Equals(e, fileName, StringComparison.OrdinalIgnoreCase));
+        return Executables.Any(e => e == "*" || string.Equals(e, fileName, StringComparison.OrdinalIgnoreCase));
     }
 }

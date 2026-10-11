@@ -130,8 +130,10 @@ Subviora assembly cannot be loaded (e.g. blocked by Smart App Control) the user 
   domain model, then `GameProfileValidator` applies semantic rules. Malformed files never throw; they are
   reported as `ProfileLoadIssue`s.
 - Storage: built-in profiles ship read-only in `<install>\profiles\builtin`; user profiles live in
-  `%LOCALAPPDATA%\Subviora\Profiles`. A user profile with the same `gameId` **replaces** the built-in
-  profile entirely (whole-profile override). Built-in files are never written.
+  `%LOCALAPPDATA%\Subviora\Profiles`. User profiles are layered overrides: built-in profiles remain
+  immutable, while user files specify only customized fields and region operations (`replace`, `upsert`,
+  `remove`). Updates to built-in profiles continue to flow through without wiping user customizations.
+  Profiles with wildcard `*` executables provide Universal Mode fallback. Built-in files are never written.
 - The GTA V profile is an **uncalibrated example**; its regions are not verified gameplay coordinates.
 
 ## 7. Planned runtime pipeline (not implemented)

@@ -2,19 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ajasismedia-dev/Subviora/profiles/schema/game-profile.v1.schema.json",
   "title": "Subviora Game Profile (schema version 1)",
-  "description": "Describes how Subviora recognises a game and where its subtitles appear. All region coordinates are normalized to the game's client area: (0,0) is top-left, (1,1) is bottom-right.",
+  "description": "Describes how Subviora recognises a game and where its subtitles appear, supporting full profiles and fine-grained layered overrides. Coordinates are normalized to the client area: (0,0) is top-left, (1,1) is bottom-right.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schemaVersion",
-    "profileVersion",
-    "gameId",
-    "displayName",
-    "executables",
-    "languages",
-    "coordinateSpace",
-    "calibration",
-    "subtitleRegions"
+    "gameId"
   ],
   "properties": {
     "$schema": { "type": "string" },
@@ -24,14 +17,18 @@
       "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
       "description": "Semantic version of this profile's content."
     },
-    "gameId": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "description": "Stable identifier. A user profile with the same gameId overrides the built-in profile." },
+    "targetProfileVersion": {
+      "type": "string",
+      "description": "Optional base profile version this override is compatible with (e.g. '0.1.0' or '0.1.*')."
+    },
+    "gameId": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "description": "Stable identifier. If matching a built-in profile, this file acts as a layered user override." },
     "displayName": { "type": "string", "minLength": 1 },
     "executables": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": { "type": "string", "pattern": "^[^\\\\/:]+\\.[eE][xX][eE]$" },
-      "description": "Executable file names (no directories) used to recognise the running game."
+      "items": { "type": "string", "pattern": "^([^\\\\/:]+\\.[eE][xX][eE]|\\*)$" },
+      "description": "Executable file names (no directories) used to recognise the running game, or '*' for Universal Mode."
     },
     "languages": {
       "type": "object",
@@ -45,7 +42,7 @@
     "coordinateSpace": {
       "type": "object",
       "additionalProperties": false,
-      "required": [ "mode", "referenceWidth", "referenceHeight" ],
+      "required": [ "mode" ],
       "properties": {
         "mode": { "const": "normalized" },
         "referenceWidth": { "type": "integer", "minimum": 1, "description": "Resolution width used while authoring the regions (informational)." },
@@ -79,15 +76,25 @@
     "region": {
       "type": "object",
       "additionalProperties": false,
-      "required": [ "id", "x", "y", "width", "height" ],
+      "required": [ "id" ],
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "op": { "enum": [ "replace", "upsert", "add", "remove", "delete" ], "default": "replace" },
         "description": { "type": "string" },
         "x": { "type": "number", "minimum": 0, "maximum": 1 },
         "y": { "type": "number", "minimum": 0, "maximum": 1 },
         "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
         "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
-      }
+      },
+      "anyOf": [
+        {
+          "properties": { "op": { "enum": [ "remove", "delete" ] } },
+          "required": [ "id", "op" ]
+        },
+        {
+          "required": [ "id", "x", "y", "width", "height" ]
+        }
+      ]
     }
   }
 }

@@ -39,28 +39,24 @@ Output: `Subviora.exe`, `appsettings.json`, and the `profiles/` folder. The targ
 
 ## Smart App Control (SAC) on development machines
 
-On Windows 11 machines with **Smart App Control** enabled, Code Integrity may block unsigned DLLs that
-have no reputation (Event Viewer → *Microsoft-Windows-CodeIntegrity/Operational*, events 3077/3033).
-The symptom is `FileLoadException` with HRESULT `0x800711C7`.
+On Windows 11 machines with **Smart App Control** (SAC) enabled, Code Integrity enforces kernel-level
+reputation verification via the cloud-based Microsoft Intelligent Security Graph (ISG) (Event Viewer →
+*Microsoft-Windows-CodeIntegrity/Operational*, Event ID 3077 / 3033). Unsigned DLLs without cloud
+reputation fail to load with `FileLoadException` (HRESULT `0x800711C7`).
 
-Observed during AG-01:
+Key findings and developer workflow (AG-01.1):
 
-- The multi-file `bin/Release/.../Subviora.exe` can fail at startup because `Subviora.Infrastructure.dll`
-  is blocked. The app catches this and shows an explanatory Turkish error dialog instead of crashing
-  silently.
-- Some test runs fail for the same reason (the test host cannot load a blocked project DLL). These are
-  load failures, not assertion failures.
-- The **single-file publish** above runs normally, because the project assemblies are bundled inside the
-  executable.
-
-Workarounds, in order of preference:
-
-1. Use the single-file publish for manual runtime testing.
-2. Run tests on a machine/VM without SAC, or in CI (planned).
-3. Long term: Authenticode-sign all release binaries (planned for stage 7).
-
-Do **not** turn SAC off as a workaround: on current Windows builds it cannot be re-enabled without
-reinstalling/resetting Windows.
+- **Deterministic Hash Caching:** Code Integrity caches reputation decisions by file SHA256 hash. When
+  `<Deterministic>true</Deterministic>` is set, rebuilding without assembly metadata changes produces
+  identical hashes, perpetuating any transient negative reputation decision. Incrementing the version
+  or assembly metadata produces a fresh hash that clears the cached deny.
+- **Automated Tests:** All unit and architecture tests execute cleanly locally (`dotnet test --solution Subviora.sln -c Release`).
+- **Continuous Integration:** GitHub Actions (`.github/workflows/ci.yml`) runs on standard Windows
+  runners (`windows-latest`), building and running all tests on clean virtual environments.
+- **Runtime Execution:** Both multi-file builds and single-file publish builds run cleanly.
+- **Commercial Release:** Code signing with an Authenticode certificate (EV Certificate or Microsoft Azure
+  Trusted Signing) will be integrated for public and Steam releases (stage 7).
+- Do **not** disable SAC, Defender, or system security policies.
 
 ## Configuration
 

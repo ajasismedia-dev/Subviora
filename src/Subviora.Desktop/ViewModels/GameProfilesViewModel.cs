@@ -119,13 +119,17 @@ public sealed partial class GameProfilesViewModel : PageViewModel
     private static ProfileListItem ToItem(GameProfile p, bool overridesBuiltIn)
     {
         var tr = CultureInfo.GetCultureInfo("tr-TR");
-        var sourceText = SourceText(p.Source) + (overridesBuiltIn ? " (yerleşik profili geçersiz kılar)" : string.Empty);
+        var sourceText = p.IsUserOverride
+            ? "Kullanıcı uyarlaması"
+            : (p.Source == ProfileSource.BuiltIn ? "Yerleşik" : "Kullanıcı");
         var details = new List<DetailItem>
         {
             new("Oyun kimliği", p.GameId),
             new("Çalıştırılabilir dosyalar", string.Join(", ", p.Executables)),
             new("Diller", $"{p.SourceLanguage.ToUpper(tr)} → {p.TargetLanguage.ToUpper(tr)}"),
-            new("Profil sürümü", $"{p.ProfileVersion} (şema v{p.SchemaVersion})"),
+            new("Profil sürümü", p.IsUserOverride
+                ? $"{p.ProfileVersion} (yerleşik v{p.BaseProfileVersion} üzerine katman)"
+                : $"{p.ProfileVersion} (şema v{p.SchemaVersion})"),
             new("Bölgeler", $"{p.SubtitleRegions.Count} altyazı bölgesi · {p.ExclusionRegions.Count} hariç tutma bölgesi"),
             new("Referans çözünürlük", $"{p.CoordinateSpace.ReferenceWidth} × {p.CoordinateSpace.ReferenceHeight} (normalize koordinatlar)"),
         };

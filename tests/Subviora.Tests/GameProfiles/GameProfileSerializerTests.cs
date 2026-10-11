@@ -122,6 +122,40 @@ public sealed class GameProfileSerializerTests
         Assert.False(result.IsSuccess);
         Assert.Contains(result.Errors, e => e.Contains("'bottom'", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void TryReadGameId_ReturnsIdFromValidJson()
+    {
+        var json = """{ "schemaVersion": 1, "gameId": "extracted-id" }""";
+        Assert.Equal("extracted-id", GameProfileSerializer.TryReadGameId(json));
+    }
+
+    [Fact]
+    public void TryReadGameId_ReturnsNullForMalformedJson()
+    {
+        Assert.Null(GameProfileSerializer.TryReadGameId("{ not valid"));
+        Assert.Null(GameProfileSerializer.TryReadGameId(string.Empty));
+    }
+
+    [Fact]
+    public void Parse_WithBaseProfile_MergesPartialOverlaySuccessfully()
+    {
+        var baseProfile = GameProfileSerializer.Parse(TestFiles.ValidProfileJson(), ProfileSource.BuiltIn).Profile!;
+        var overrideJson = """
+            {
+              "schemaVersion": 1,
+              "gameId": "test-game",
+              "overlay": { "fontScale": 2.5 }
+            }
+            """;
+
+        var result = GameProfileSerializer.Parse(overrideJson, ProfileSource.User, baseProfile: baseProfile);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2.5, result.Profile!.Overlay.FontScale);
+        Assert.Equal(baseProfile.Overlay.BackgroundOpacity, result.Profile.Overlay.BackgroundOpacity);
+        Assert.True(result.Profile.IsUserOverride);
+    }
 }
 
 public sealed class GameProfileValidatorTests
@@ -166,4 +200,23 @@ public sealed class GameProfileValidatorTests
     [Fact]
     public void Validate_OverlayOutOfRange_IsError() =>
         Assert.NotEmpty(GameProfileValidator.Validate(Valid() with { Overlay = OverlayPreferences.Default with { MaxLines = 0, BackgroundOpacity = 2 } }));
+
+    [Fact]
+    public void Validate_UniversalModeWildcardExecutable_IsValid() =>
+        Assert.Empty(GameProfileValidator.Validate(Valid() with { Executables = ["*"] }));
+
+    [Theory]
+    [InlineData("1.0.0", "1.0.0", true)]
+    [InlineData("1.0.0", "1.1.0", true)]
+    [InlineData("1.0.0", "2.0.0", false)]
+    [InlineData("0.1.0", "0.1.5", true)]
+    [InlineData("0.1.0", "0.2.0", false)]
+    [InlineData("^1.0.0", "1.2.3", true)]
+    [InlineData("1.*", "1.4.0", true)]
+    [InlineData("1.*", "2.0.0", false)]
+    [InlineData("*", "any.version", true)]
+    public void IsVersionCompatible_ValidatesSemVerRules(string target, string @base, bool expected)
+    {
+        Assert.Equal(expected, GameProfileValidator.IsVersionCompatible(target, @base));
+    }
 }

@@ -69,11 +69,20 @@ public static partial class GameProfileValidator
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var exe in executables)
         {
-            if (string.IsNullOrWhiteSpace(exe)
-                || exe.IndexOfAny(['\\', '/', ':']) >= 0
-                || !exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(exe))
             {
-                errors.Add($"executable '{exe}' must be a bare file name ending in .exe (no directories).");
+                errors.Add("executable name must not be empty.");
+            }
+            else if (exe == "*")
+            {
+                if (!seen.Add(exe))
+                {
+                    errors.Add("universal executable '*' is listed more than once.");
+                }
+            }
+            else if (exe.IndexOfAny(['\\', '/', ':']) >= 0 || !exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                errors.Add($"executable '{exe}' must be a bare file name ending in .exe (or '*' for Universal Mode).");
             }
             else if (!seen.Add(exe))
             {
@@ -147,6 +156,68 @@ public static partial class GameProfileValidator
         {
             errors.Add("overlay.backgroundOpacity must be between 0 and 1.");
         }
+    }
+
+    /// <summary>
+    /// Checks whether an override targeting <paramref name="targetVersion"/> is compatible
+    /// with the base profile's <paramref name="baseVersion"/>.
+    /// </summary>
+    public static bool IsVersionCompatible(string targetVersion, string baseVersion)
+    {
+        if (string.IsNullOrWhiteSpace(targetVersion) || string.IsNullOrWhiteSpace(baseVersion))
+        {
+            return false;
+        }
+
+        targetVersion = targetVersion.Trim();
+        baseVersion = baseVersion.Trim();
+
+        if (string.Equals(targetVersion, baseVersion, StringComparison.OrdinalIgnoreCase) || targetVersion == "*")
+        {
+            return true;
+        }
+
+        if (targetVersion.StartsWith('^'))
+        {
+            targetVersion = targetVersion[1..].Trim();
+        }
+
+        if (targetVersion.EndsWith(".*", StringComparison.Ordinal))
+        {
+            var prefix = targetVersion[..^2];
+            return baseVersion.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (Version.TryParse(NormalizeVersionString(targetVersion), out var tVer)
+            && Version.TryParse(NormalizeVersionString(baseVersion), out var bVer))
+        {
+            if (tVer.Major >= 1 || bVer.Major >= 1)
+            {
+                return tVer.Major == bVer.Major && bVer >= tVer;
+            }
+
+            return tVer.Major == 0 && bVer.Major == 0 && tVer.Minor == bVer.Minor && bVer.Build >= tVer.Build;
+        }
+
+        return string.Equals(targetVersion, baseVersion, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeVersionString(string v)
+    {
+        var hyphen = v.IndexOf('-');
+        if (hyphen >= 0)
+        {
+            v = v[..hyphen];
+        }
+
+        var parts = v.Split('.');
+        return parts.Length switch
+        {
+            1 => $"{parts[0]}.0.0.0",
+            2 => $"{parts[0]}.{parts[1]}.0.0",
+            3 => $"{parts[0]}.{parts[1]}.{parts[2]}.0",
+            _ => v,
+        };
     }
 
     [GeneratedRegex(@"^[a-z0-9]+(-[a-z0-9]+)*$", RegexOptions.CultureInvariant)]

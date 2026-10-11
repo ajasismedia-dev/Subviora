@@ -116,17 +116,15 @@ The command is `dotnet test --solution Subviora.sln`.
   of resolution.
 - Profiles carry a `calibration.status`. The shipped GTA V profile is `uncalibrated`.
 
-## ADR-012: A user profile replaces the built-in profile as a whole
+## ADR-012: Whole-profile replacement (superseded)
 
-**Status:** Accepted (AG-01)
+**Status:** Superseded by ADR-017 (AG-01.1)
 
-**Decision:** Built-in profiles ship read-only next to the executable. User profiles live in
-`%LOCALAPPDATA%\Subviora\Profiles`. A user profile with the same `gameId` replaces the built-in one
-entirely; fields are not merged.
+**Original Decision (AG-01):** Built-in profiles were replaced entirely by a matching user profile.
 
-**Rationale:** Field-level merging of regions is ambiguous, and whole-profile replacement is predictable.
-The trade-off is that a user copy does not receive built-in updates automatically. This will be
-revisited along with the calibration tooling (stage 6).
+**Reason for Replacement:** Whole-profile replacement caused user customizations to completely mask
+subsequent built-in profile updates, requiring users to manually merge new executables, exclusion regions,
+and calibration improvements. Replaced by the layered override system in ADR-017.
 
 ## ADR-013: Per-user, no-admin operation
 
@@ -148,20 +146,45 @@ are English technical text shown inside Turkish dialogs.
 **Consequences:** This is fast to iterate on. Strings move to `.resx` resources before any additional UI
 language is added.
 
-## ADR-015: Smart App Control and code signing
+## ADR-015: Smart App Control, Code Integrity (Event ID 3077), and code signing
 
-**Status:** Accepted (AG-01 finding)
+**Status:** Accepted (updated AG-01.1)
 
-**Context:** On the AG-01 development machine, Windows 11 Smart App Control blocked some unsigned,
-reputation-less project DLLs (`0x800711C7`). This broke multi-file runs and some test runs, while the
-single-file publish ran correctly.
+**Context:** On the development machine, Windows 11 Smart App Control (SAC) blocked certain unsigned,
+locally compiled project DLLs with `FileLoadException` (HRESULT `0x800711C7`), logging Code Integrity
+Operational Event ID 3077 / 3033. This initially blocked multi-file application execution and 18 unit
+tests that loaded `Subviora.Infrastructure.dll`.
+
+**Investigation Findings (AG-01.1):**
+
+1. **Policy Identification:** The blocking policy is `VerifiedAndReputableDesktop` (Policy GUID
+   `{0283ac0f-fff1-49ae-ada1-8a933130cad6}`, Policy ID `27555.1000.240208`). Registry check confirms
+   `HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy\VerifiedAndReputablePolicyState = 1` (SAC is Enforced).
+2. **Mechanism:** SAC evaluates newly generated unsigned binaries against the cloud-based Microsoft
+   Intelligent Security Graph (ISG). When a binary has no established reputation and cannot be attested
+   by ISG, Code Integrity blocks execution.
+3. **Hash Caching & Deterministic Builds:** Code Integrity caches reputation decisions by file SHA256
+   hash. Because `Directory.Build.props` had `<Deterministic>true</Deterministic>`, all rebuilds produced
+   identical SHA256 hashes for `Subviora.Infrastructure.dll`, keeping it permanently blocked under the
+   cached deny decision.
+4. **Resolution in Development:** Bumping assembly version metadata (e.g. `0.1.1`) produces a distinct
+   hash that clears the cached deny, allowing all multi-file executables and all 83 unit tests to run and
+   pass cleanly without altering system security policies.
+5. **CI Automation:** A GitHub Actions Windows CI pipeline (`.github/workflows/ci.yml`) runs clean builds
+   and automated tests on isolated Windows runners (`windows-latest`), ensuring verified validation
+   independent of local SAC caching.
+6. **Commercial Distribution Requirements:** For the future Steam and Windows desktop release, all
+   binaries must be signed with a trusted Authenticode code signing certificate (EV Certificate or
+   Microsoft Azure Trusted Signing) to guarantee instant reputation and bypass Smart App Control /
+   Defender SmartScreen warnings on end-user machines.
 
 **Decision:**
 
-- The app detects this failure and shows an explanatory dialog.
-- Developers use single-file publish for manual runtime testing.
-- Release binaries must be Authenticode-signed (stage 7).
-- SAC must not be disabled as a workaround.
+- Never disable or bypass Smart App Control, Defender, or system security policies.
+- Do not install untrusted root certificates.
+- Automated tests and builds run cleanly locally and in GitHub Actions CI.
+- Release distribution will integrate Microsoft Azure Trusted Signing / EV Authenticode signing prior
+  to Steam/public launch.
 
 ## ADR-016: Dependency licensing
 
@@ -186,3 +209,41 @@ Only dependencies with licenses compatible with commercial, closed-source distri
 
 OCR and translation models will be evaluated for license compatibility before they are integrated.
 Model weights are never committed to the repository.
+
+## ADR-017: Layered game profile overrides
+
+**Status:** Accepted (AG-01.1, supersedes ADR-012)
+
+**Context:** ADR-012 specified whole-profile replacement when a user profile matched a built-in profile's
+`gameId`. This caused built-in profile updates (new executables, tuned exclusion regions, calibration
+fixes) to be masked entirely by stale user profiles.
+
+**Decision:**
+- Built-in game profiles in `<install>\profiles\builtin` are immutable baselines.
+- User overrides in `%LOCALAPPDATA%\Subviora\Profiles` specify only explicitly customized fields
+  (sparse JSON documents) and reference a `targetProfileVersion`.
+- Unmodified fields are inherited from the built-in baseline. When built-in profiles are updated, new
+  defaults flow through automatically without erasing user customizations.
+- Subtitle and exclusion regions support granular override operations:
+  - `op: "replace"` (default) or `op: "upsert"`: Updates an existing region by `id` or appends a new region.
+  - `op: "remove"`: Deletes a specific region by `id`. Removing non-existent regions or leaving zero
+    subtitle regions is rejected during validation.
+- Schema versioning compatibility: user overrides must target a semantically compatible version
+  (same major version, target version <= base version). Incompatible overrides fail gracefully and leave
+  the built-in profile intact.
+- Backward compatibility: Whole-profile JSON files from AG-01 remain fully valid and load cleanly without
+  requiring file format migration.
+
+## ADR-018: Universal Mode profile fallback
+
+**Status:** Accepted (AG-01.1)
+
+**Context:** Users require translation support for games that do not yet have a dedicated game profile.
+
+**Decision:**
+- Game profiles may declare `*` in their `executables` array to designate a Universal Mode fallback profile.
+- In `IGameProfileProvider.FindByExecutableAsync`, exact executable matches take absolute precedence over
+  wildcard matches. If no specific profile matches the running executable, the universal profile is returned.
+- Region coordinates in Universal Mode default to common lower-third subtitle placements with uncalibrated
+  status.
+

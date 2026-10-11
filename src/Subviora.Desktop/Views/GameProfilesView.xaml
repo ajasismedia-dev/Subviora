@@ -25,7 +25,7 @@
         </Button>
       </StackPanel>
       <TextBlock Style="{StaticResource Text.Body}" VerticalAlignment="Center" Margin="0,0,24,0"
-                 Text="Yerleşik profiller salt okunurdur. Aynı oyun kimliğine sahip bir kullanıcı profili, yerleşik profilin yerine geçer." />
+                 Text="Yerleşik profiller salt okunurdur. Kullanıcı uyarlamaları, yerleşik profilin üzerine katman olarak uygulanır ve yalnızca özelleştirilen alanları günceller." />
     </DockPanel>
 
     <!-- Load error -->
