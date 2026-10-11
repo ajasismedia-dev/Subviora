@@ -1,0 +1,67 @@
+{
+  "$schema": "../schema/game-profile.v1.schema.json",
+  "schemaVersion": 1,
+  "profileVersion": "0.1.0",
+  "gameId": "gta5-story",
+  "displayName": "Grand Theft Auto V — Hikaye Modu",
+  "executables": [
+    "GTA5.exe",
+    "GTA5_Enhanced.exe"
+  ],
+  "languages": {
+    "source": "en",
+    "target": "tr"
+  },
+  "coordinateSpace": {
+    "mode": "normalized",
+    "referenceWidth": 1920,
+    "referenceHeight": 1080
+  },
+  "calibration": {
+    "status": "uncalibrated",
+    "notes": "Kalibre edilmemiş örnek. Bölgeler yalnızca tahmini örneklerdir ve gerçek oyun içinde doğrulanmamıştır. Çalıştırılabilir dosya adları her sürüm için ayrıca doğrulanmalıdır. Görev hedefi metinleri altyazı alanını paylaşabilir; bu durum Akıllı Arayüz Algılama ile ele alınacaktır."
+  },
+  "subtitleRegions": [
+    {
+      "id": "dialogue-bottom",
+      "description": "Örnek: alt-orta diyalog altyazıları (kalibre edilmedi).",
+      "x": 0.20,
+      "y": 0.84,
+      "width": 0.60,
+      "height": 0.12
+    }
+  ],
+  "exclusionRegions": [
+    {
+      "id": "minimap",
+      "description": "Örnek: sol alttaki radar / mini harita (kalibre edilmedi).",
+      "x": 0.01,
+      "y": 0.74,
+      "width": 0.17,
+      "height": 0.24
+    },
+    {
+      "id": "help-text",
+      "description": "Örnek: sol üstteki yardım kutusu (kalibre edilmedi).",
+      "x": 0.01,
+      "y": 0.01,
+      "width": 0.30,
+      "height": 0.15
+    },
+    {
+      "id": "hud-top-right",
+      "description": "Örnek: sağ üstteki para ve silah göstergesi (kalibre edilmedi).",
+      "x": 0.75,
+      "y": 0.01,
+      "width": 0.24,
+      "height": 0.15
+    }
+  ],
+  "overlay": {
+    "anchor": "sourceRegion",
+    "fontScale": 1.0,
+    "maxLines": 2,
+    "backgroundOpacity": 0.6,
+    "hideSourceSubtitle": false
+  }
+}

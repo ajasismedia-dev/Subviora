@@ -1,0 +1,119 @@
+<UserControl x:Class="Subviora.Desktop.Views.GameProfilesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Subviora.Desktop.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:GameProfilesViewModel, IsDesignTimeCreatable=False}">
+  <StackPanel>
+
+    <!-- Toolbar -->
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <Button Style="{StaticResource Button.Secondary}" Command="{Binding OpenUserFolderCommand}" Margin="0,0,8,0">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource Text.Icon}" FontSize="13" Text="&#xE838;" Margin="0,0,8,0" />
+            <TextBlock Text="Kullanıcı profil klasörü" />
+          </StackPanel>
+        </Button>
+        <Button Style="{StaticResource Button.Secondary}" Command="{Binding ReloadCommand}">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource Text.Icon}" FontSize="13" Text="&#xE72C;" Margin="0,0,8,0" />
+            <TextBlock Text="Yenile" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+      <TextBlock Style="{StaticResource Text.Body}" VerticalAlignment="Center" Margin="0,0,24,0"
+                 Text="Yerleşik profiller salt okunurdur. Aynı oyun kimliğine sahip bir kullanıcı profili, yerleşik profilin yerine geçer." />
+    </DockPanel>
+
+    <!-- Load error -->
+    <Border Style="{StaticResource Notice.Warning}" Margin="0,16,0,0" Visibility="{Binding HasLoadError, Converter={StaticResource BoolToVisibility}}">
+      <TextBlock Style="{StaticResource Text.Body}" Foreground="{StaticResource Brush.TextPrimary}" Text="{Binding LoadError}" />
+    </Border>
+
+    <!-- Empty state -->
+    <Border Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="{Binding HasNoProfiles, Converter={StaticResource BoolToVisibility}}">
+      <TextBlock Style="{StaticResource Text.Body}" Text="Hiç geçerli profil bulunamadı." />
+    </Border>
+
+    <!-- Profiles -->
+    <ItemsControl ItemsSource="{Binding Profiles}" Focusable="False">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate DataType="{x:Type vm:ProfileListItem}">
+          <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+            <StackPanel>
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                  <Border x:Name="SourceBadge" Style="{StaticResource Badge}">
+                    <TextBlock x:Name="SourceBadgeText" Style="{StaticResource Badge.Text}" Text="{Binding SourceText}" />
+                  </Border>
+                  <Border x:Name="CalibrationBadge" Style="{StaticResource Badge.Warning}" Margin="8,0,0,0">
+                    <TextBlock x:Name="CalibrationBadgeText" Style="{StaticResource Badge.Text}" Foreground="{StaticResource Brush.Warning}" Text="{Binding CalibrationText}" />
+                  </Border>
+                </StackPanel>
+                <TextBlock Style="{StaticResource Text.CardTitle}" FontSize="16" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+              </DockPanel>
+
+              <TextBlock x:Name="Notes" Style="{StaticResource Text.Body}" Margin="0,10,0,0" Text="{Binding CalibrationNotes}" />
+
+              <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding Details}" ItemTemplate="{StaticResource DetailRowTemplate}" Focusable="False" />
+            </StackPanel>
+          </Border>
+          <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsCalibrated}" Value="True">
+              <Setter TargetName="CalibrationBadge" Property="Style" Value="{StaticResource Badge.Accent}" />
+              <Setter TargetName="CalibrationBadgeText" Property="Foreground" Value="{StaticResource Brush.Accent}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding CalibrationNotes}" Value="{x:Null}">
+              <Setter TargetName="Notes" Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+          </DataTemplate.Triggers>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <!-- Load issues -->
+    <ItemsControl ItemsSource="{Binding Issues}" Focusable="False">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate DataType="{x:Type vm:ProfileIssueItem}">
+          <Border Style="{StaticResource Card}" Margin="0,16,0,0" BorderBrush="#33F07167">
+            <StackPanel>
+              <DockPanel>
+                <Border DockPanel.Dock="Right" Style="{StaticResource Badge}">
+                  <TextBlock Style="{StaticResource Badge.Text}" Text="{Binding SourceText}" />
+                </Border>
+                <TextBlock Style="{StaticResource Text.CardTitle}" Foreground="{StaticResource Brush.Danger}" Text="Profil yüklenemedi" />
+              </DockPanel>
+              <TextBlock Style="{StaticResource Text.Path}" Margin="0,8,0,0" Text="{Binding FilePath}" />
+              <TextBlock Style="{StaticResource Text.Label}" Margin="0,10,0,2" Text="Teknik ayrıntılar" />
+              <TextBlock Style="{StaticResource Text.Path}" Text="{Binding Errors}" />
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <!-- Locations -->
+    <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Text.CardTitle}" Text="Profil konumları" />
+        <Grid Margin="0,12,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="210" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <TextBlock Style="{StaticResource Text.Label}" Text="Yerleşik profiller" Margin="0,6" />
+          <TextBlock Grid.Column="1" Style="{StaticResource Text.Path}" Text="{Binding BuiltInDirectory}" Margin="0,6" />
+          <TextBlock Grid.Row="1" Style="{StaticResource Text.Label}" Text="Kullanıcı profilleri" Margin="0,6" />
+          <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Text.Path}" Text="{Binding UserDirectory}" Margin="0,6" />
+        </Grid>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

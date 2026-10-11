@@ -1,0 +1,38 @@
+<UserControl x:Class="Subviora.Desktop.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Subviora.Desktop.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+  <StackPanel>
+
+    <Border Style="{StaticResource Card}">
+      <StackPanel>
+        <DockPanel>
+          <Border DockPanel.Dock="Right" Style="{StaticResource Badge}">
+            <TextBlock Style="{StaticResource Badge.Text}" Text="Uygulama içi düzenleme henüz yok" />
+          </Border>
+          <TextBlock Style="{StaticResource Text.CardTitle}" Text="Etkin yapılandırma" />
+        </DockPanel>
+        <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0"
+                   Text="Ayarlar şu anda yalnızca görüntülenir. Gelişmiş kullanıcılar, kullanıcı ayarları dosyasını düzenleyerek varsayılanları değiştirebilir; değişiklikler yeniden başlatmadan sonra geçerli olur." />
+        <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding EffectiveSettings}" ItemTemplate="{StaticResource DetailRowTemplate}" Focusable="False" />
+      </StackPanel>
+    </Border>
+
+    <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+      <StackPanel>
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+            <Button Style="{StaticResource Button.Secondary}" Command="{Binding OpenLogsFolderCommand}" Content="Günlük klasörünü aç" Margin="0,0,8,0" />
+            <Button Style="{StaticResource Button.Secondary}" Command="{Binding OpenDataFolderCommand}" Content="Veri klasörünü aç" />
+          </StackPanel>
+          <TextBlock Style="{StaticResource Text.CardTitle}" Text="Klasörler" VerticalAlignment="Center" />
+        </DockPanel>
+        <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding Folders}" ItemTemplate="{StaticResource DetailRowTemplate}" Focusable="False" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

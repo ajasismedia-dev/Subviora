@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Subviora.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Subviora.Core\Subviora.Core.csproj" />
+    <ProjectReference Include="..\..\src\Subviora.GameProfiles\Subviora.GameProfiles.csproj" />
+    <ProjectReference Include="..\..\src\Subviora.Infrastructure\Subviora.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The shipped built-in profiles are validated by the test suite. -->
+    <Content Include="..\..\profiles\builtin\*.json" Link="profiles\builtin\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Subviora.Desktop\appsettings.json" Link="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

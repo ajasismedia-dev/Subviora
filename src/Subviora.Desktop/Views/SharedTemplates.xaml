@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:Subviora.Desktop.ViewModels">
+
+  <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+  <!-- Label / value row used by detail lists. -->
+  <DataTemplate x:Key="DetailRowTemplate" DataType="{x:Type vm:DetailItem}">
+    <Grid Margin="0,6">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="210" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <TextBlock Style="{StaticResource Text.Label}" Text="{Binding Label}" VerticalAlignment="Top" Margin="0,1,16,0" />
+      <TextBlock x:Name="Value" Grid.Column="1" Style="{StaticResource Text.Value}" Text="{Binding Value}" />
+    </Grid>
+    <DataTemplate.Triggers>
+      <DataTrigger Binding="{Binding IsPath}" Value="True">
+        <Setter TargetName="Value" Property="Style" Value="{StaticResource Text.Path}" />
+      </DataTrigger>
+    </DataTemplate.Triggers>
+  </DataTemplate>
+
+</ResourceDictionary>

@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Subviora.Desktop: WPF management application (composition root). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Subviora.Desktop</RootNamespace>
+    <AssemblyName>Subviora</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <!-- Windows Forms is used only for the notification-area icon (NotifyIcon); it ships with the Windows Desktop runtime. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <StartupObject>Subviora.Desktop.App</StartupObject>
+    <!-- Required by the LibraryImport source generator for Win32 interop. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!--
+      WFO0003 recommends WinForms' ApplicationHighDpiMode. This is a WPF application (WinForms is used only
+      for NotifyIcon), so Per-Monitor V2 DPI awareness is correctly declared in app.manifest instead.
+    -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Avoid WPF/WinForms type ambiguities (Application, MessageBox, Color, ...). -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Subviora.Core\Subviora.Core.csproj" />
+    <ProjectReference Include="..\Subviora.Infrastructure\Subviora.Infrastructure.csproj" />
+    <ProjectReference Include="..\Subviora.GameProfiles\Subviora.GameProfiles.csproj" />
+    <ProjectReference Include="..\Subviora.Capture\Subviora.Capture.csproj" />
+    <ProjectReference Include="..\Subviora.Vision\Subviora.Vision.csproj" />
+    <ProjectReference Include="..\Subviora.Translation\Subviora.Translation.csproj" />
+    <ProjectReference Include="..\Subviora.Overlay\Subviora.Overlay.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Built-in profiles and schema are shipped read-only next to the executable. -->
+    <Content Include="..\..\profiles\builtin\*.json" Link="profiles\builtin\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\profiles\schema\*.json" Link="profiles\schema\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

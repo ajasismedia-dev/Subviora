@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ajasismedia-dev/Subviora/profiles/schema/game-profile.v1.schema.json",
+  "title": "Subviora Game Profile (schema version 1)",
+  "description": "Describes how Subviora recognises a game and where its subtitles appear. All region coordinates are normalized to the game's client area: (0,0) is top-left, (1,1) is bottom-right.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "profileVersion",
+    "gameId",
+    "displayName",
+    "executables",
+    "languages",
+    "coordinateSpace",
+    "calibration",
+    "subtitleRegions"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1, "description": "Version of this schema. Readers reject versions they do not support." },
+    "profileVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "description": "Semantic version of this profile's content."
+    },
+    "gameId": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "description": "Stable identifier. A user profile with the same gameId overrides the built-in profile." },
+    "displayName": { "type": "string", "minLength": 1 },
+    "executables": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[^\\\\/:]+\\.[eE][xX][eE]$" },
+      "description": "Executable file names (no directories) used to recognise the running game."
+    },
+    "languages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "source", "target" ],
+      "properties": {
+        "source": { "type": "string", "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$" },
+        "target": { "type": "string", "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$" }
+      }
+    },
+    "coordinateSpace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "mode", "referenceWidth", "referenceHeight" ],
+      "properties": {
+        "mode": { "const": "normalized" },
+        "referenceWidth": { "type": "integer", "minimum": 1, "description": "Resolution width used while authoring the regions (informational)." },
+        "referenceHeight": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "status" ],
+      "properties": {
+        "status": { "enum": [ "uncalibrated", "verified" ] },
+        "notes": { "type": "string" }
+      }
+    },
+    "subtitleRegions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/region" } },
+    "exclusionRegions": { "type": "array", "items": { "$ref": "#/$defs/region" } },
+    "overlay": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "anchor": { "enum": [ "sourceRegion", "bottomCenter", "topCenter" ], "default": "sourceRegion" },
+        "fontScale": { "type": "number", "minimum": 0.5, "maximum": 3.0, "default": 1.0 },
+        "maxLines": { "type": "integer", "minimum": 1, "maximum": 5, "default": 2 },
+        "backgroundOpacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.6 },
+        "hideSourceSubtitle": { "type": "boolean", "default": false }
+      }
+    }
+  },
+  "$defs": {
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "id", "x", "y", "width", "height" ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "description": { "type": "string" },
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 },
+        "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}

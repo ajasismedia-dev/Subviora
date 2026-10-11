@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Future home of IOcrProvider and IUiClassificationProvider implementations. Empty in AG-01. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Subviora.Vision</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Subviora.Core\Subviora.Core.csproj" />
+  </ItemGroup>
+
+</Project>

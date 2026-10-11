@@ -1,0 +1,96 @@
+<UserControl x:Class="Subviora.Desktop.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Subviora.Desktop.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:DashboardViewModel, IsDesignTimeCreatable=False}">
+  <StackPanel>
+
+    <!-- Honest scope notice -->
+    <Border Style="{StaticResource Notice.Warning}">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Left" Style="{StaticResource Text.Icon}" Text="&#xE946;" Foreground="{StaticResource Brush.Warning}"
+                   VerticalAlignment="Top" Margin="0,2,14,0" />
+        <StackPanel>
+          <TextBlock Text="Geliştirme önizlemesi — temel altyapı sürümü" FontWeight="SemiBold" Foreground="{StaticResource Brush.TextPrimary}" />
+          <TextBlock Style="{StaticResource Text.Body}" Margin="0,4,0,0"
+                     Text="Bu sürüm yalnızca uygulamanın temel altyapısını içerir. Ekran yakalama, metin tanıma, çeviri ve altyazı katmanı henüz uygulanmadı; gerçek zamanlı çeviri bu sürümde çalışmaz." />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <Grid Margin="0,16,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="3*" />
+        <ColumnDefinition Width="16" />
+        <ColumnDefinition Width="2*" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Application status (real values only) -->
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <DockPanel>
+            <Border DockPanel.Dock="Right" Style="{StaticResource Badge.Accent}">
+              <StackPanel Orientation="Horizontal">
+                <Ellipse Width="6" Height="6" Fill="{StaticResource Brush.Accent}" VerticalAlignment="Center" />
+                <TextBlock Style="{StaticResource Badge.Text}" Foreground="{StaticResource Brush.Accent}" Text="Çalışıyor" Margin="6,0,0,0" />
+              </StackPanel>
+            </Border>
+            <TextBlock Style="{StaticResource Text.CardTitle}" Text="Uygulama durumu" />
+          </DockPanel>
+          <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding ApplicationDetails}" ItemTemplate="{StaticResource DetailRowTemplate}" Focusable="False" />
+        </StackPanel>
+      </Border>
+
+      <!-- Game profiles summary -->
+      <Border Grid.Column="2" Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Style="{StaticResource Text.CardTitle}" Text="Oyun profilleri" />
+          <TextBlock Text="{Binding ProfileSummary}" FontFamily="{StaticResource Font.Display}" FontSize="22" FontWeight="SemiBold" Margin="0,14,0,0" />
+          <TextBlock Style="{StaticResource Text.Body}" Text="{Binding ProfileIssueSummary}" Margin="0,4,0,0" />
+          <Border Height="1" Background="{StaticResource Brush.Border}" Margin="0,16" />
+          <DockPanel>
+            <Border DockPanel.Dock="Right" Style="{StaticResource Badge}" Margin="12,0,0,0">
+              <TextBlock Style="{StaticResource Badge.Text}" Text="Henüz uygulanmadı" />
+            </Border>
+            <TextBlock Style="{StaticResource Text.Value}" Text="Oyun algılama" VerticalAlignment="Center" />
+          </DockPanel>
+          <TextBlock Style="{StaticResource Text.Body}" Margin="0,6,0,0"
+                     Text="Çalışan oyunlar henüz algılanmıyor. Profiller yalnızca yüklenir ve doğrulanır." />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- Module status -->
+    <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="20,16">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Text.CardTitle}" Text="Modüller" Margin="0,0,0,6" />
+        <ItemsControl ItemsSource="{Binding Modules}" Focusable="False">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type vm:ModuleStatus}">
+              <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0" Padding="0,12">
+                <DockPanel>
+                  <Border x:Name="Badge" DockPanel.Dock="Right" Style="{StaticResource Badge}" Margin="16,0,0,0">
+                    <TextBlock x:Name="BadgeText" Style="{StaticResource Badge.Text}" Text="{Binding StatusText}" />
+                  </Border>
+                  <StackPanel>
+                    <TextBlock Style="{StaticResource Text.Value}" Text="{Binding Name}" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource Text.Body}" Text="{Binding Description}" Margin="0,2,0,0" />
+                  </StackPanel>
+                </DockPanel>
+              </Border>
+              <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsImplemented}" Value="True">
+                  <Setter TargetName="Badge" Property="Style" Value="{StaticResource Badge.Accent}" />
+                  <Setter TargetName="BadgeText" Property="Foreground" Value="{StaticResource Brush.Accent}" />
+                </DataTrigger>
+              </DataTemplate.Triggers>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

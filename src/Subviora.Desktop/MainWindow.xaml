@@ -1,0 +1,108 @@
+<Window x:Class="Subviora.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Subviora.Desktop.ViewModels"
+        xmlns:views="clr-namespace:Subviora.Desktop.Views"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel, IsDesignTimeCreatable=False}"
+        Title="Subviora"
+        Icon="{StaticResource BrandMarkImage}"
+        Width="1180" Height="740" MinWidth="960" MinHeight="620"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Brush.Background}"
+        Foreground="{StaticResource Brush.TextPrimary}"
+        FontFamily="{StaticResource Font.Ui}"
+        FontSize="13"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+
+  <Window.Resources>
+    <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+      <views:DashboardView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:GameProfilesViewModel}">
+      <views:GameProfilesView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:PlaceholderPageViewModel}">
+      <views:PlaceholderView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+      <views:SettingsView />
+    </DataTemplate>
+  </Window.Resources>
+
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="248" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <!-- ===== Sidebar ===== -->
+    <Border Background="{StaticResource Brush.Surface}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,1,0">
+      <DockPanel LastChildFill="True">
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="24,24,24,28">
+          <Image Source="{StaticResource BrandMarkImage}" Width="30" Height="30" />
+          <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+            <TextBlock Text="Subviora" FontFamily="{StaticResource Font.Display}" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Text="Oyun altyazı çevirmeni" Style="{StaticResource Text.Label}" Margin="0,1,0,0" />
+          </StackPanel>
+        </StackPanel>
+
+        <Border DockPanel.Dock="Bottom" Margin="24,0,24,22" Padding="0,16,0,0"
+                BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0">
+          <StackPanel>
+            <StackPanel Orientation="Horizontal">
+              <Ellipse Width="7" Height="7" Fill="{StaticResource Brush.Accent}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding StatusText}" Margin="8,0,0,0" Foreground="{StaticResource Brush.TextSecondary}" FontSize="12" />
+            </StackPanel>
+            <TextBlock Text="{Binding VersionText}" Style="{StaticResource Text.Label}" Margin="15,4,0,0" />
+          </StackPanel>
+        </Border>
+
+        <ListBox Style="{StaticResource NavList}"
+                 ItemContainerStyle="{StaticResource NavListItem}"
+                 ItemsSource="{Binding NavigationItems}"
+                 SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                 AutomationProperties.Name="Gezinme">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="{x:Type vm:NavigationItem}">
+              <DockPanel AutomationProperties.Name="{Binding Title}">
+                <TextBlock DockPanel.Dock="Left" Style="{StaticResource Text.Icon}" Text="{Binding Glyph}" Margin="0,0,12,0" />
+                <Border x:Name="SoonBadge" DockPanel.Dock="Right" Style="{StaticResource Badge}" Padding="6,1,6,2" Visibility="Collapsed">
+                  <TextBlock Style="{StaticResource Badge.Text}" FontSize="10" Text="Yakında" />
+                </Border>
+                <TextBlock Text="{Binding Title}" FontSize="13" VerticalAlignment="Center" />
+              </DockPanel>
+              <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsImplemented}" Value="False">
+                  <Setter TargetName="SoonBadge" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+              </DataTemplate.Triggers>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <!-- ===== Content ===== -->
+    <Grid Grid.Column="1">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <StackPanel Margin="40,30,40,20">
+        <TextBlock Style="{StaticResource Text.PageTitle}" Text="{Binding CurrentPage.Title}" />
+        <TextBlock Style="{StaticResource Text.PageSubtitle}" Text="{Binding CurrentPage.Subtitle}" Margin="0,6,0,0" />
+      </StackPanel>
+
+      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+        <ContentControl Content="{Binding CurrentPage}" Margin="40,0,40,36" Focusable="False" />
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</Window>
